@@ -1,0 +1,25 @@
+{
+  "name": "paper-scraper-next",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "bun --cwd apps/web run dev",
+    "dev:api": "bun --cwd apps/api run dev",
+    "dev:jobs": "bun --cwd apps/jobs run dev",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down -v",
+    "lint:agents": "node tools/agent-lint/index.mjs",
+    "lint:docs": "node tools/docs-lint/index.mjs",
+    "lint:phase": "node tools/docs-lint/lint-phase.mjs",
+    "gate:phase": "node tools/phase-gate/gate-phase.mjs",
+    "gate:stage1": "node tools/phase-gate/gate-stage1.mjs",
+    "gate:stage2": "node tools/phase-gate/gate-stage2.mjs",
+    "check:touched:backend": "node tools/phase-gate/check-touched-backend.mjs",
+    "check:touched:frontend": "node tools/phase-gate/check-touched-frontend.mjs",
+    "quality:premerge": "npm run lint:agents && npm run lint:docs && npm run gate:stage1 && npm run gate:stage2"
+  }
+}

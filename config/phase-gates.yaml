@@ -1,0 +1,58 @@
+{
+  "phase_gates": [
+    {
+      "phase_id": "S1.1",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.1"],
+      "evidence": ["bootstrap log", "health check output", "schema migration output"]
+    },
+    {
+      "phase_id": "S1.2",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.2"],
+      "evidence": ["stream run log", "dedup proof", "object.created queue evidence"]
+    },
+    {
+      "phase_id": "S1.3",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.3"],
+      "evidence": ["entity resolution proof", "score payload validation", "fold-up update evidence"]
+    },
+    {
+      "phase_id": "S1.4",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.4"],
+      "evidence": ["feed/object/entity/pipeline flows", "responsive checks", "error-state checks"]
+    },
+    {
+      "phase_id": "S1.EXIT",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.EXIT"],
+      "evidence": ["golden-path e2e", "performance report", "acceptance report"]
+    },
+    {
+      "phase_id": "S2.W1",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S2.W1"],
+      "evidence": ["interaction-step comparison", "saved-view persistence", "keyboard and batch behavior"]
+    },
+    {
+      "phase_id": "S2.W2",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S2.W2"],
+      "evidence": ["cross-tenant denial tests", "role matrix tests", "audit log append-only checks"]
+    },
+    {
+      "phase_id": "S2.W3",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S2.W3"],
+      "evidence": ["search benchmark", "trigger log evidence", "reversibility proof"]
+    },
+    {
+      "phase_id": "S2.W4",
+      "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
+      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S2.W4"],
+      "evidence": ["plugin lifecycle evidence", "security control checks", "admin access control checks"]
+    }
+  ]
+}

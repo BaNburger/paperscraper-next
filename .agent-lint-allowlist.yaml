@@ -1,0 +1,9 @@
+# Agent lint exception allowlist for PaperScraper Next.
+# Entries require:
+# - rule_id
+# - path
+# - match
+# - reason
+# - owner
+# - expires_on (ISO date)
+[]

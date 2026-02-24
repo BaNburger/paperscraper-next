@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PhaseGate",
+  "type": "object",
+  "required": ["phase_id", "required_commands", "required_tests", "evidence"],
+  "properties": {
+    "phase_id": { "type": "string" },
+    "required_commands": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "required_tests": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

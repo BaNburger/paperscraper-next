@@ -1,0 +1,148 @@
+{
+  "rules": [
+    {
+      "id": "PSN001",
+      "description": "No ad hoc network calls outside API/adapter/provider boundaries.",
+      "severity": "error",
+      "scope": "backend,frontend",
+      "matcher": "fetch\\(|axios\\.|requests\\.|httpx\\.",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN002",
+      "description": "Routers call engine APIs only; no direct DB/raw SQL.",
+      "severity": "error",
+      "scope": "backend",
+      "matcher": "router[^\\n]*\\b(db\\.|prisma\\.|SELECT\\s)",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN003",
+      "description": "Engines must not directly import other engines.",
+      "severity": "error",
+      "scope": "backend",
+      "matcher": "from ['\"]\\.\\./.*engine",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN004",
+      "description": "No unused or single-use dependencies unless allowlisted.",
+      "severity": "error",
+      "scope": "repo",
+      "matcher": "single-use dependency",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN005",
+      "description": "No single-use shared UI components.",
+      "severity": "error",
+      "scope": "frontend",
+      "matcher": "shared component single-use",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN006",
+      "description": "No single-use helper/util files.",
+      "severity": "error",
+      "scope": "repo",
+      "matcher": "single-use helper",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN007",
+      "description": "Keep files compact via line caps.",
+      "severity": "error",
+      "scope": "repo",
+      "matcher": "line cap exceeded",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN008",
+      "description": "No unsafe execution/security primitives.",
+      "severity": "error",
+      "scope": "backend,frontend",
+      "matcher": "eval\\(|exec\\(|subprocess\\.",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN009",
+      "description": "Performance guardrails: no SELECT *; worker retries/concurrency required.",
+      "severity": "error",
+      "scope": "backend",
+      "matcher": "SELECT \\*",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN010",
+      "description": "Function sprawl control (max functions per file).",
+      "severity": "error",
+      "scope": "repo",
+      "matcher": "function cap exceeded",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN011",
+      "description": "No persona-specific branching in core logic.",
+      "severity": "error",
+      "scope": "backend,frontend",
+      "matcher": "if \\(.+persona",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN012",
+      "description": "All external boundaries must be schema validated.",
+      "severity": "error",
+      "scope": "backend",
+      "matcher": "unvalidated external boundary",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN013",
+      "description": "Async jobs require mandatory observability.",
+      "severity": "error",
+      "scope": "backend",
+      "matcher": "missing job observability",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN014",
+      "description": "Query safety budgets require projection/pagination/index-backed paths.",
+      "severity": "error",
+      "scope": "backend",
+      "matcher": "unbounded query",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN015",
+      "description": "Complexity caps are required.",
+      "severity": "error",
+      "scope": "repo",
+      "matcher": "complexity cap exceeded",
+      "autofix": false,
+      "allowlistable": true
+    },
+    {
+      "id": "PSN016",
+      "description": "Dependency hygiene by layer with explicit allowlists.",
+      "severity": "error",
+      "scope": "repo",
+      "matcher": "cross-layer dependency leak",
+      "autofix": false,
+      "allowlistable": true
+    }
+  ]
+}
