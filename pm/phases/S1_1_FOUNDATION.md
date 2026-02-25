@@ -61,6 +61,7 @@ This phase establishes the execution substrate for all later phases. Product fea
 2. Worker readiness/log contract (`ready`, `degraded`, `failed`).
 3. Shared package export contract for DTOs and error envelopes.
 4. Base Prisma schema contract for Stage 1 tables.
+5. API env contract includes bounded probe timeout (`HEALTH_PROBE_TIMEOUT_MS`).
 
 ## Out of Scope
 
@@ -77,6 +78,7 @@ This phase establishes the execution substrate for all later phases. Product fea
 4. Maintainable: keep files small, single-responsibility, and testable.
 5. Secure: no unsafe execution primitives or plaintext secret handling.
 6. Performant: baseline startup and health checks must complete quickly.
+7. Deterministic: dependency probes must be timeout-bounded and non-hanging.
 
 ## Acceptance Criteria
 
@@ -96,6 +98,7 @@ This phase establishes the execution substrate for all later phases. Product fea
 3. E2E: clean-clone bootstrap script execution.
 4. Performance: startup latency sample under local baseline.
 5. Security: secret handling smoke checks and unsafe primitive scans.
+6. Resilience: `/health` degraded-state checks for dependency failure and timeout paths.
 
 ## Exit Gate
 

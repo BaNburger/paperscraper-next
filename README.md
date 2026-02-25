@@ -91,18 +91,31 @@ This repository is documentation-first and execution-gated. Every implementation
     └── phase-gate/
 ```
 
-## S1.1 Bootstrap Commands
+## S1.1 Verification Flow
 
 1. Install dependencies:
    - `npm install`
-2. Start local infra (PostgreSQL + Redis):
+2. Create local env once:
+   - `cp -n .env.example .env`
+3. Start local infra (PostgreSQL + Redis):
    - `npm run infra:up`
-3. Apply base schema migration:
-   - `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/paperscraper_next?schema=public npm --prefix packages/db run migrate:deploy`
-4. Start runtimes:
+4. Apply base schema migration:
+   - `bun run --env-file=.env.example --env-file=.env --cwd packages/db migrate:deploy`
+5. Start runtimes:
    - API: `npm run dev:api`
    - Jobs: `npm run dev:jobs`
    - Web: `npm run dev:web`
+6. Smoke checks:
+   - `curl http://localhost:4000/health`
+   - `curl "http://localhost:4000/trpc/system.health?input=%7B%7D"`
+7. Phase gate:
+   - `npm run gate:phase -- --phase=S1.1`
+
+## Why npm + Bun
+
+1. Root scripts use `npm run ...` as the repository control plane for lint/gates/runbooks.
+2. Service runtimes stay Bun-native (`dev:*` scripts call `bun run ...` inside each workspace).
+3. This keeps one governance entrypoint while preserving Bun performance where it matters.
 
 ## Non-Negotiable Rules
 

@@ -25,35 +25,56 @@ function errorReason(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown health check error';
 }
 
+function probeResultToDependency(
+  result: PromiseSettledResult<DependencyHealth>,
+  dependencyName: string
+): DependencyHealth {
+  if (result.status === 'fulfilled') {
+    return result.value;
+  }
+
+  return {
+    status: 'failed',
+    reason: `${dependencyName} probe failed: ${errorReason(result.reason)}`,
+  };
+}
+
+function diagnosticsReason(postgres: DependencyHealth, redis: DependencyHealth): string | undefined {
+  const failedReasons = [];
+  if (postgres.status === 'failed') {
+    failedReasons.push(`postgres: ${postgres.reason || 'unknown failure'}`);
+  }
+  if (redis.status === 'failed') {
+    failedReasons.push(`redis: ${redis.reason || 'unknown failure'}`);
+  }
+
+  if (failedReasons.length === 0) {
+    return undefined;
+  }
+  return failedReasons.join('; ');
+}
+
 export function createSystemEngine(deps: SystemEngineDeps) {
   return {
     async getHealthSnapshot() {
-      try {
-        const [postgres, redis] = await Promise.all([
-          deps.postgresProbe(),
-          deps.redisProbe(),
-        ]);
+      const [postgresResult, redisResult] = await Promise.allSettled([
+        deps.postgresProbe(),
+        deps.redisProbe(),
+      ]);
 
-        return healthSnapshotSchema.parse({
-          status: overallStatus(postgres, redis),
-          timestamp: new Date().toISOString(),
-          dependencies: {
-            postgres,
-            redis,
-          },
-        });
-      } catch (error) {
-        const reason = errorReason(error);
-        return healthSnapshotSchema.parse({
-          status: 'failed',
-          timestamp: new Date().toISOString(),
-          dependencies: {
-            postgres: { status: 'failed', reason },
-            redis: { status: 'failed', reason },
-          },
-          diagnostics: { reason },
-        });
-      }
+      const postgres = probeResultToDependency(postgresResult, 'PostgreSQL');
+      const redis = probeResultToDependency(redisResult, 'Redis');
+      const reason = diagnosticsReason(postgres, redis);
+
+      return healthSnapshotSchema.parse({
+        status: overallStatus(postgres, redis),
+        timestamp: new Date().toISOString(),
+        dependencies: {
+          postgres,
+          redis,
+        },
+        diagnostics: reason ? { reason } : undefined,
+      });
     },
   };
 }

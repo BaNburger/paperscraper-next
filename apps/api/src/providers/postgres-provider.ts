@@ -4,13 +4,28 @@ import {
   type DependencyHealth,
 } from '@paperscraper/shared';
 
-export async function probePostgres(databaseUrl: string): Promise<DependencyHealth> {
+function withTimeout(promise: Promise<unknown>, timeoutMs: number, message: string): Promise<unknown> {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
+export async function probePostgres(databaseUrl: string, timeoutMs: number): Promise<DependencyHealth> {
   const startedAt = Date.now();
   const client = new Client({ connectionString: databaseUrl });
 
   try {
-    await client.connect();
-    await client.query('SELECT 1 AS one');
+    await withTimeout(
+      (async () => {
+        await client.connect();
+        await client.query('SELECT 1 AS one');
+      })(),
+      timeoutMs,
+      `PostgreSQL probe timeout after ${timeoutMs}ms`
+    );
     return dependencyHealthSchema.parse({
       status: 'ready',
       latencyMs: Date.now() - startedAt,

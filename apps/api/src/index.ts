@@ -9,8 +9,8 @@ import type { TrpcContext } from './trpc/context';
 const env = loadApiEnv();
 
 const systemEngine = createSystemEngine({
-  postgresProbe: () => probePostgres(env.DATABASE_URL),
-  redisProbe: () => probeRedis(env.REDIS_URL),
+  postgresProbe: () => probePostgres(env.DATABASE_URL, env.HEALTH_PROBE_TIMEOUT_MS),
+  redisProbe: () => probeRedis(env.REDIS_URL, env.HEALTH_PROBE_TIMEOUT_MS),
 });
 
 async function requestHandler(request: Request): Promise<Response> {

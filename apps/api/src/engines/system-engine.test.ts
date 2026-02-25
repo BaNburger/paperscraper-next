@@ -41,5 +41,7 @@ describe('system engine', () => {
     const health = await engine.getHealthSnapshot();
     expect(health.status).toBe('failed');
     expect(health.diagnostics?.reason).toContain('Probe crashed');
+    expect(health.dependencies.postgres.status).toBe('failed');
+    expect(health.dependencies.redis.status).toBe('ready');
   });
 });

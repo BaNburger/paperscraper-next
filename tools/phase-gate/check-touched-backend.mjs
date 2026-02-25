@@ -1,34 +1,95 @@
-import path from 'node:path';
-import { collectFiles, projectRoot, runCommand, runCommandCapture } from '../lib/common.mjs';
+import { runCommand, runCommandCapture } from '../lib/common.mjs';
 
-const root = projectRoot();
+const BACKEND_WORKSPACES = ['apps/api', 'apps/jobs', 'packages/shared', 'packages/db'];
+const FULL_CHECK_TRIGGERS = [
+  'package.json',
+  'package-lock.json',
+  'tsconfig.json',
+  'tsconfig.base.json',
+  '.env.example',
+  'tools/',
+  'config/',
+];
 
-const pythonFiles = collectFiles(
-  root,
-  (fullPath, relPath) => fullPath.endsWith('.py') && !relPath.includes('node_modules'),
-  { ignoreDirs: ['node_modules', '.git'] }
-);
+function splitLines(value) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
-if (pythonFiles.length === 0) {
-  console.log('[check:touched:backend] No Python backend files detected; skipping ruff/pytest.');
+function runGit(args) {
+  const result = runCommandCapture('git', args);
+  if (result.status !== 0) {
+    return null;
+  }
+  return splitLines(result.stdout || '');
+}
+
+function detectChangedPaths() {
+  const inRepo = runGit(['rev-parse', '--is-inside-work-tree']);
+  if (!inRepo || inRepo[0] !== 'true') {
+    return null;
+  }
+
+  const staged = runGit(['diff', '--name-only', '--cached']);
+  const unstaged = runGit(['diff', '--name-only']);
+  const untracked = runGit(['ls-files', '--others', '--exclude-standard']);
+  if (!staged || !unstaged || !untracked) {
+    return null;
+  }
+
+  return Array.from(new Set([...staged, ...unstaged, ...untracked]));
+}
+
+function needsFullCheck(changedPaths) {
+  return changedPaths.some((path) =>
+    FULL_CHECK_TRIGGERS.some((trigger) =>
+      trigger.endsWith('/') ? path.startsWith(trigger) : path === trigger
+    )
+  );
+}
+
+function selectWorkspaces(changedPaths) {
+  if (needsFullCheck(changedPaths)) {
+    return BACKEND_WORKSPACES;
+  }
+
+  const touched = BACKEND_WORKSPACES.filter((workspace) =>
+    changedPaths.some((path) => path.startsWith(`${workspace}/`))
+  );
+  return touched;
+}
+
+function runWorkspaceChecks(workspaces) {
+  for (const workspace of workspaces) {
+    runCommand(`npm --prefix ${workspace} run lint --if-present`, {
+      context: `backend-lint:${workspace}`,
+    });
+    runCommand(`npm --prefix ${workspace} run test --if-present`, {
+      context: `backend-test:${workspace}`,
+    });
+  }
+}
+
+const changedPaths = detectChangedPaths();
+if (!changedPaths) {
+  console.log('[check:touched:backend] Could not resolve changed files; running full backend checks.');
+  runWorkspaceChecks(BACKEND_WORKSPACES);
+  console.log('[check:touched:backend] passed.');
   process.exit(0);
 }
 
-const ruff = runCommandCapture('ruff', ['--version']);
-if (ruff.status !== 0) {
-  console.error('[check:touched:backend] ruff is required when Python files are present.');
-  process.exit(1);
+if (changedPaths.length === 0) {
+  console.log('[check:touched:backend] No changed files detected; skipping backend checks.');
+  process.exit(0);
 }
 
-runCommand('ruff check .', { context: 'backend-lint' });
-runCommand('ruff format --check .', { context: 'backend-format' });
-
-const pytest = runCommandCapture('pytest', ['--version']);
-const testDir = path.join(root, 'tests');
-if (pytest.status === 0 && pythonFiles.some((f) => f.startsWith(testDir))) {
-  runCommand('pytest -q', { context: 'backend-tests' });
-} else {
-  console.log('[check:touched:backend] No runnable backend test suite detected; skipping pytest.');
+const workspaces = selectWorkspaces(changedPaths);
+if (workspaces.length === 0) {
+  console.log('[check:touched:backend] No backend workspace changes detected; skipping backend checks.');
+  process.exit(0);
 }
 
-console.log('[check:touched:backend] passed.');
+runWorkspaceChecks(workspaces);
+console.log(`[check:touched:backend] passed (${workspaces.join(', ')}).`);

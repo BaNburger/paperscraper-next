@@ -4,7 +4,16 @@ import {
   type DependencyHealth,
 } from '@paperscraper/shared';
 
-export async function probeRedis(redisUrl: string): Promise<DependencyHealth> {
+function withTimeout(promise: Promise<unknown>, timeoutMs: number, message: string): Promise<unknown> {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
+export async function probeRedis(redisUrl: string, timeoutMs: number): Promise<DependencyHealth> {
   const startedAt = Date.now();
   const client = new IORedis(redisUrl, {
     lazyConnect: true,
@@ -14,8 +23,14 @@ export async function probeRedis(redisUrl: string): Promise<DependencyHealth> {
   client.on('error', () => undefined);
 
   try {
-    await client.connect();
-    await client.ping();
+    await withTimeout(
+      (async () => {
+        await client.connect();
+        await client.ping();
+      })(),
+      timeoutMs,
+      `Redis probe timeout after ${timeoutMs}ms`
+    );
     return dependencyHealthSchema.parse({
       status: 'ready',
       latencyMs: Date.now() - startedAt,

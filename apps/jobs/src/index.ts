@@ -38,17 +38,6 @@ const worker = new Worker(
   }
 );
 
-worker.on('ready', () => {
-  console.log(
-    JSON.stringify({
-      state: 'ready',
-      component: 'jobs-worker',
-      attempt: 1,
-      durationMs: 0,
-    })
-  );
-});
-
 worker.on('error', (error) => {
   console.error(
     JSON.stringify({
@@ -61,9 +50,50 @@ worker.on('error', (error) => {
   );
 });
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
+let shuttingDown = false;
+
 async function shutdown(): Promise<void> {
-  await worker.close();
-  await closeRedis(workerConnection);
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+
+  try {
+    await withTimeout(worker.close(), 3000, 'Timed out while closing worker');
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        state: 'degraded',
+        component: 'jobs-worker',
+        attempt: 1,
+        durationMs: 0,
+        reason: error instanceof Error ? error.message : 'Unknown shutdown error',
+      })
+    );
+  }
+
+  try {
+    await withTimeout(closeRedis(workerConnection), 3000, 'Timed out while closing Redis connection');
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        state: 'degraded',
+        component: 'jobs-worker',
+        attempt: 1,
+        durationMs: 0,
+        reason: error instanceof Error ? error.message : 'Unknown shutdown error',
+      })
+    );
+  }
 }
 
 process.on('SIGINT', async () => {

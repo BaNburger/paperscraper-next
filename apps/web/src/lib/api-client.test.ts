@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   decodeHealthSnapshot,
-  getApiConfig,
+  getApiBaseUrl,
   TRPC_PATH,
 } from './api-client';
 
 describe('api client scaffold', () => {
   it('uses fallback defaults', () => {
-    const config = getApiConfig();
-    expect(config.baseUrl).toBe('http://localhost:4000');
-    expect(config.trpcPath).toBe(TRPC_PATH);
+    expect(getApiBaseUrl()).toBe('http://localhost:4000');
+    expect(TRPC_PATH).toBe('/trpc');
   });
 
   it('parses health payloads with the shared contract', () => {

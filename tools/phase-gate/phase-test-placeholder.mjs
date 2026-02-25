@@ -8,4 +8,6 @@ if (!phase) {
   process.exit(1);
 }
 
-console.log(`[phase-test-placeholder] ${phase}: placeholder test command passed.`);
+console.log(
+  `[phase-test-placeholder] ${phase}: placeholder test command passed (replace with phase-specific verifier before phase completion).`
+);
