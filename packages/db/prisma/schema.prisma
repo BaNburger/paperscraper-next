@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Stream {
+  id        String      @id @default(cuid())
+  name      String
+  query     String
+  source    String
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  runs      StreamRun[]
+
+  @@map("streams")
+}
+
+model StreamRun {
+  id            String   @id @default(cuid())
+  streamId       String
+  status         String
+  startedAt      DateTime @default(now())
+  finishedAt     DateTime?
+  processedCount Int      @default(0)
+  insertedCount  Int      @default(0)
+  updatedCount   Int      @default(0)
+  failedCount    Int      @default(0)
+  failureReason  String?
+  stream         Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+  @@index([streamId])
+  @@index([status])
+  @@map("stream_runs")
+}
+
+model ResearchObject {
+  id           String               @id @default(cuid())
+  externalId   String
+  source       String
+  title        String
+  abstract     String?
+  publishedAt  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  objectLinks  ObjectEntity[]
+  scores       ObjectScore[]
+  pipelineCard ObjectPipelineCard[]
+
+  @@unique([externalId, source])
+  @@index([publishedAt])
+  @@map("research_objects")
+}
+
+model Entity {
+  id          String         @id @default(cuid())
+  name        String
+  kind        String
+  externalId  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  objectLinks ObjectEntity[]
+  scores      EntityScore[]
+
+  @@unique([kind, name])
+  @@index([externalId])
+  @@map("entities")
+}
+
+model ObjectEntity {
+  id        String         @id @default(cuid())
+  objectId  String
+  entityId  String
+  role      String
+  position  Int?
+  createdAt DateTime       @default(now())
+  object    ResearchObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  entity    Entity         @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([objectId, entityId, role])
+  @@index([entityId])
+  @@map("object_entities")
+}
+
+model Dimension {
+  id        String        @id @default(cuid())
+  name      String
+  prompt    String
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  scores    ObjectScore[]
+  foldups   EntityScore[]
+
+  @@unique([name])
+  @@map("dimensions")
+}
+
+model ObjectScore {
+  id          String         @id @default(cuid())
+  dimensionId String
+  objectId    String
+  value       Float
+  explanation String
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  dimension   Dimension      @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  object      ResearchObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([dimensionId, objectId])
+  @@index([objectId])
+  @@map("object_scores")
+}
+
+model EntityScore {
+  id          String    @id @default(cuid())
+  dimensionId String
+  entityId    String
+  value       Float
+  explanation String
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  dimension   Dimension @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  entity      Entity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([dimensionId, entityId])
+  @@index([entityId])
+  @@map("entity_scores")
+}
+
+model Pipeline {
+  id          String               @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  stages      PipelineStage[]
+  cards       ObjectPipelineCard[]
+
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id         String               @id @default(cuid())
+  pipelineId String
+  name       String
+  position   Int
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  pipeline   Pipeline             @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  cards      ObjectPipelineCard[]
+
+  @@unique([pipelineId, position])
+  @@index([pipelineId])
+  @@map("pipeline_stages")
+}
+
+model ObjectPipelineCard {
+  id         String         @id @default(cuid())
+  pipelineId String
+  stageId    String
+  objectId   String
+  position   Int
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  pipeline   Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage      PipelineStage  @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  object     ResearchObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([pipelineId, objectId])
+  @@index([stageId, position])
+  @@map("object_pipeline_cards")
+}
+
+model ApiKey {
+  id           String    @id @default(cuid())
+  provider     String
+  encryptedKey String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  revokedAt    DateTime?
+
+  @@unique([provider])
+  @@map("api_keys")
+}

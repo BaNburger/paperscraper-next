@@ -146,10 +146,16 @@ function scanRepo(root, rules, options = {}) {
       if (relPath.startsWith('tools/agent-lint/') && !includeFixtures) {
         return false;
       }
+      if (relPath.startsWith('dist/') || relPath.includes('/dist/')) {
+        return false;
+      }
+      if (relPath.startsWith('.vite/') || relPath.includes('/.vite/')) {
+        return false;
+      }
       const ext = path.extname(fullPath);
       return CODE_EXTENSIONS.has(ext);
     },
-    { ignoreDirs: ['node_modules', '.git'] }
+    { ignoreDirs: ['node_modules', '.git', 'dist', '.vite'] }
   );
 
   const findings = [];

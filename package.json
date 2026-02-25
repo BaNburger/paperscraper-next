@@ -7,9 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "bun --cwd apps/web run dev",
-    "dev:api": "bun --cwd apps/api run dev",
-    "dev:jobs": "bun --cwd apps/jobs run dev",
+    "dev:web": "bun run --cwd apps/web dev",
+    "dev:api": "bun run --cwd apps/api dev",
+    "dev:jobs": "bun run --cwd apps/jobs dev",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down -v",
     "lint:agents": "node tools/agent-lint/index.mjs",

@@ -35,6 +35,15 @@ This repository is documentation-first and execution-gated. Every implementation
 .
 ├── AGENTS.md
 ├── README.md
+├── apps/
+│   ├── api/
+│   ├── jobs/
+│   └── web/
+├── packages/
+│   ├── db/
+│   └── shared/
+├── infra/
+│   └── docker-compose.yml
 ├── pm/
 │   ├── PRD.md
 │   ├── VISION.md
@@ -81,6 +90,19 @@ This repository is documentation-first and execution-gated. Every implementation
     ├── docs-lint/
     └── phase-gate/
 ```
+
+## S1.1 Bootstrap Commands
+
+1. Install dependencies:
+   - `npm install`
+2. Start local infra (PostgreSQL + Redis):
+   - `npm run infra:up`
+3. Apply base schema migration:
+   - `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/paperscraper_next?schema=public npm --prefix packages/db run migrate:deploy`
+4. Start runtimes:
+   - API: `npm run dev:api`
+   - Jobs: `npm run dev:jobs`
+   - Web: `npm run dev:web`
 
 ## Non-Negotiable Rules
 

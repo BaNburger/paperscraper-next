@@ -1,0 +1,26 @@
+{
+  "name": "@paperscraper/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@paperscraper/shared": "file:../../packages/shared",
+    "@trpc/server": "^11.10.0",
+    "ioredis": "^5.9.3",
+    "pg": "^8.18.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.16.0",
+    "bun-types": "^1.3.9",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
