@@ -23,6 +23,7 @@ describe('openalex provider', () => {
       expect(url.searchParams.get('filter')).toBe('publication_year:2024');
       expect(url.searchParams.get('search')).toBeNull();
       expect(url.searchParams.get('select')).toContain('display_name');
+      expect(url.searchParams.get('select')).toContain('authorships');
       expect(url.searchParams.get('api_key')).toBe('test-key');
       return {
         results: [
@@ -34,6 +35,14 @@ describe('openalex provider', () => {
               network: [1],
               graph: [0],
             },
+            authorships: [
+              {
+                author: {
+                  id: 'https://openalex.org/A1',
+                  display_name: 'Ada Lovelace',
+                },
+              },
+            ],
           },
           {
             display_name: 'Missing id should fail',

@@ -132,3 +132,67 @@ jobs:
         run: npm ci
       - name: Runtime smoke S1.2
         run: node tools/phase-gate/verify-s1_2.mjs --mode=runtime
+
+  gate-s1_3:
+    runs-on: ubuntu-latest
+    services: *foundation_services
+    env: &s1_3_env
+      <<: *s1_2_env
+      SECRETS_MASTER_KEY: ""
+      OPENAI_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+      OPENAI_SMOKE_MODEL: gpt-4o-mini
+      ANTHROPIC_SMOKE_MODEL: claude-3-5-haiku-latest
+      GRAPH_WORKER_CONCURRENCY: 2
+      OPENAI_BASE_URL: https://api.openai.com
+      OPENAI_TIMEOUT_MS: 6000
+      OPENAI_MAX_RETRIES: 2
+      OPENAI_RETRY_BASE_DELAY_MS: 250
+      ANTHROPIC_BASE_URL: https://api.anthropic.com
+      ANTHROPIC_TIMEOUT_MS: 6000
+      ANTHROPIC_MAX_RETRIES: 2
+      ANTHROPIC_RETRY_BASE_DELAY_MS: 250
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint agents
+        run: npm run lint:agents
+      - name: Lint docs
+        run: npm run lint:docs
+      - name: Lint phase S1.3
+        run: npm run lint:phase -- --phase=S1.3
+      - name: Gate phase S1.3
+        run: npm run gate:phase -- --phase=S1.3
+
+  runtime-smoke-s1_3:
+    runs-on: ubuntu-latest
+    needs: gate-s1_3
+    services: *foundation_services
+    env:
+      <<: *s1_3_env
+      SECRETS_MASTER_KEY: ${{ secrets.SECRETS_MASTER_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_SMOKE_MODEL: ${{ vars.OPENAI_SMOKE_MODEL || 'gpt-4o-mini' }}
+      ANTHROPIC_SMOKE_MODEL: ${{ vars.ANTHROPIC_SMOKE_MODEL || 'claude-3-5-haiku-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install dependencies
+        run: npm ci
+      - name: Runtime smoke S1.3
+        run: node tools/phase-gate/verify-s1_3.mjs --mode=runtime

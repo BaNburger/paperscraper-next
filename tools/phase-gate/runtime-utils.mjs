@@ -65,6 +65,23 @@ export function loadRuntimeEnv(root, overrides = {}) {
   runtimeEnv.OPENALEX_BASE_URL =
     runtimeEnv.OPENALEX_BASE_URL || defaults.openAlexBaseUrl;
   runtimeEnv.OPENALEX_API_KEY = runtimeEnv.OPENALEX_API_KEY || '';
+  runtimeEnv.OPENAI_BASE_URL = runtimeEnv.OPENAI_BASE_URL || defaults.openAiBaseUrl;
+  runtimeEnv.ANTHROPIC_BASE_URL =
+    runtimeEnv.ANTHROPIC_BASE_URL || defaults.anthropicBaseUrl;
+  runtimeEnv.OPENAI_TIMEOUT_MS = runtimeEnv.OPENAI_TIMEOUT_MS || '6000';
+  runtimeEnv.OPENAI_MAX_RETRIES = runtimeEnv.OPENAI_MAX_RETRIES || '2';
+  runtimeEnv.OPENAI_RETRY_BASE_DELAY_MS =
+    runtimeEnv.OPENAI_RETRY_BASE_DELAY_MS || '250';
+  runtimeEnv.ANTHROPIC_TIMEOUT_MS = runtimeEnv.ANTHROPIC_TIMEOUT_MS || '6000';
+  runtimeEnv.ANTHROPIC_MAX_RETRIES = runtimeEnv.ANTHROPIC_MAX_RETRIES || '2';
+  runtimeEnv.ANTHROPIC_RETRY_BASE_DELAY_MS =
+    runtimeEnv.ANTHROPIC_RETRY_BASE_DELAY_MS || '250';
+  runtimeEnv.OPENAI_API_KEY = runtimeEnv.OPENAI_API_KEY || '';
+  runtimeEnv.ANTHROPIC_API_KEY = runtimeEnv.ANTHROPIC_API_KEY || '';
+  runtimeEnv.OPENAI_SMOKE_MODEL = runtimeEnv.OPENAI_SMOKE_MODEL || 'gpt-4o-mini';
+  runtimeEnv.ANTHROPIC_SMOKE_MODEL =
+    runtimeEnv.ANTHROPIC_SMOKE_MODEL || 'claude-3-5-haiku-latest';
+  runtimeEnv.SECRETS_MASTER_KEY = runtimeEnv.SECRETS_MASTER_KEY || '';
   return runtimeEnv;
 }
 

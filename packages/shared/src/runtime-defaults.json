@@ -6,5 +6,7 @@
   "graphQueueName": "psn.object.created",
   "healthProbeTimeoutMs": 1000,
   "apiBaseUrl": "http://localhost:4000",
-  "openAlexBaseUrl": "https://api.openalex.org"
+  "openAlexBaseUrl": "https://api.openalex.org",
+  "openAiBaseUrl": "https://api.openai.com",
+  "anthropicBaseUrl": "https://api.anthropic.com"
 }

@@ -4,6 +4,7 @@ import { runIngestStreamRunner } from './stream-runner';
 function createQueue() {
   return {
     add: vi.fn(async () => ({ id: 'job_1' })),
+    getJob: vi.fn(async () => null),
     getJobCounts: vi.fn(async () => ({
       waiting: 0,
       active: 0,

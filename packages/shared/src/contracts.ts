@@ -86,6 +86,8 @@ export type StreamRunStatus = z.infer<typeof streamRunStatusSchema>;
 
 export const streamSourceSchema = z.enum(['openalex']);
 export type StreamSource = z.infer<typeof streamSourceSchema>;
+export const scoringProviderSchema = z.enum(['openai', 'anthropic']);
+export type ScoringProvider = z.infer<typeof scoringProviderSchema>;
 
 const filterQuerySchema = z
   .string()
@@ -183,6 +185,105 @@ export const streamRunsInputSchema = z.object({
 });
 export type StreamRunsInput = z.infer<typeof streamRunsInputSchema>;
 
+export const dimensionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  prompt: z.string().min(1),
+  provider: scoringProviderSchema,
+  model: z.string().min(1),
+  isActive: z.boolean(),
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema,
+});
+export type DimensionDto = z.infer<typeof dimensionSchema>;
+
+export const dimensionsListInputSchema = z.object({
+  includeInactive: z.boolean().optional().default(false),
+});
+export type DimensionsListInput = z.infer<typeof dimensionsListInputSchema>;
+
+export const dimensionCreateInputSchema = z.object({
+  name: z.string().min(1),
+  prompt: z.string().min(1),
+  provider: scoringProviderSchema,
+  model: z.string().min(1),
+  isActive: z.boolean().optional().default(true),
+});
+export type DimensionCreateInput = z.infer<typeof dimensionCreateInputSchema>;
+
+export const dimensionUpdateInputSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1).optional(),
+    prompt: z.string().min(1).optional(),
+    provider: scoringProviderSchema.optional(),
+    model: z.string().min(1).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.prompt !== undefined ||
+      value.provider !== undefined ||
+      value.model !== undefined ||
+      value.isActive !== undefined,
+    {
+      message: 'At least one field must be provided for update.',
+      path: ['id'],
+    }
+  );
+export type DimensionUpdateInput = z.infer<typeof dimensionUpdateInputSchema>;
+
+export const dimensionDeleteInputSchema = z.object({
+  id: z.string().min(1),
+});
+export type DimensionDeleteInput = z.infer<typeof dimensionDeleteInputSchema>;
+
+export const apiKeyStatusSchema = z.enum(['configured', 'revoked', 'missing']);
+export type ApiKeyStatus = z.infer<typeof apiKeyStatusSchema>;
+
+export const apiKeyProviderStateSchema = z.object({
+  provider: scoringProviderSchema,
+  status: apiKeyStatusSchema,
+  updatedAt: isoDateTimeSchema.nullable(),
+  revokedAt: isoDateTimeSchema.nullable(),
+});
+export type ApiKeyProviderState = z.infer<typeof apiKeyProviderStateSchema>;
+
+export const apiKeyUpsertInputSchema = z.object({
+  provider: scoringProviderSchema,
+  apiKey: z.string().min(1),
+});
+export type ApiKeyUpsertInput = z.infer<typeof apiKeyUpsertInputSchema>;
+
+export const apiKeyRevokeInputSchema = z.object({
+  provider: scoringProviderSchema,
+});
+export type ApiKeyRevokeInput = z.infer<typeof apiKeyRevokeInputSchema>;
+
+export const scoreValueSchema = z.number().finite().min(0).max(100);
+export type ScoreValue = z.infer<typeof scoreValueSchema>;
+
+export const scoreOutputSchema = z.object({
+  value: scoreValueSchema,
+  explanation: z.string().min(1),
+  metadata: z.unknown().optional(),
+});
+export type ScoreOutput = z.infer<typeof scoreOutputSchema>;
+
+export const scoreBackfillDimensionInputSchema = z.object({
+  dimensionId: z.string().min(1),
+});
+export type ScoreBackfillDimensionInput = z.infer<typeof scoreBackfillDimensionInputSchema>;
+
+export const scoreBackfillKickoffSchema = z.object({
+  dimensionId: z.string().min(1),
+  jobId: z.string().min(1),
+  status: z.literal('queued'),
+  queuedAt: isoDateTimeSchema,
+});
+export type ScoreBackfillKickoff = z.infer<typeof scoreBackfillKickoffSchema>;
+
 export const ingestStreamJobPayloadSchema = z.object({
   streamId: z.string().min(1),
 });
@@ -197,3 +298,31 @@ export const objectCreatedJobPayloadSchema = z.object({
 });
 export type ObjectCreatedJobPayload = z.infer<typeof objectCreatedJobPayloadSchema>;
 export const OBJECT_CREATED_JOB_NAME = 'object.created.v1';
+
+export const objectReadyJobPayloadSchema = z.object({
+  objectId: z.string().min(1),
+  source: streamSourceSchema,
+});
+export type ObjectReadyJobPayload = z.infer<typeof objectReadyJobPayloadSchema>;
+export const OBJECT_READY_JOB_NAME = 'object.ready.v1';
+
+export const scoreObjectJobPayloadSchema = z.object({
+  objectId: z.string().min(1),
+  dimensionId: z.string().min(1),
+  source: streamSourceSchema,
+});
+export type ScoreObjectJobPayload = z.infer<typeof scoreObjectJobPayloadSchema>;
+export const SCORE_OBJECT_JOB_NAME = 'score.object.v1';
+
+export const scoreFoldEntityJobPayloadSchema = z.object({
+  dimensionId: z.string().min(1),
+  entityId: z.string().min(1),
+});
+export type ScoreFoldEntityJobPayload = z.infer<typeof scoreFoldEntityJobPayloadSchema>;
+export const SCORE_FOLD_ENTITY_JOB_NAME = 'score.foldEntity.v1';
+
+export const scoreBackfillDimensionJobPayloadSchema = z.object({
+  dimensionId: z.string().min(1),
+});
+export type ScoreBackfillDimensionJobPayload = z.infer<typeof scoreBackfillDimensionJobPayloadSchema>;
+export const SCORE_BACKFILL_DIMENSION_JOB_NAME = 'score.backfill.dimension.v1';

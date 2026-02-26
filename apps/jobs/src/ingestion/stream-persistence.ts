@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@paperscraper/db';
+import type { Prisma, PrismaClient } from '@paperscraper/db';
 import type { NormalizedResearchObject } from './openalex-normalizer';
 
 export interface PersistResult {
@@ -22,6 +22,15 @@ function dedupeByExternalId(rows: NormalizedResearchObject[]): NormalizedResearc
     byExternalId.set(row.externalId, row);
   }
   return Array.from(byExternalId.values());
+}
+
+function asJsonMetadata(
+  value: NormalizedResearchObject['sourceMetadata']
+): Prisma.InputJsonValue | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 export async function persistResearchObjects(
@@ -63,6 +72,7 @@ export async function persistResearchObjects(
           source: row.source,
           title: row.title,
           abstract: row.abstract,
+          sourceMetadata: asJsonMetadata(row.sourceMetadata),
           publishedAt: row.publishedAt,
         })),
         skipDuplicates: true,
@@ -79,6 +89,7 @@ export async function persistResearchObjects(
               source: row.source,
               title: row.title,
               abstract: row.abstract,
+              sourceMetadata: asJsonMetadata(row.sourceMetadata),
               publishedAt: row.publishedAt,
             },
             select: { id: true },
@@ -106,6 +117,7 @@ export async function persistResearchObjects(
         data: {
           title: row.title,
           abstract: row.abstract,
+          sourceMetadata: asJsonMetadata(row.sourceMetadata),
           publishedAt: row.publishedAt,
         },
         select: { id: true },

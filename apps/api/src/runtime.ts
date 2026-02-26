@@ -1,14 +1,17 @@
 import { PrismaClient } from '@paperscraper/db';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { createApiKeysEngine } from './engines/api-keys-engine';
+import { createScoringEngine } from './engines/scoring-engine';
 import { createStreamsEngine } from './engines/streams-engine';
 import { createSystemEngine } from './engines/system-engine';
 import type { ApiEnv } from './config';
+import { createApiKeysProvider } from './providers/api-keys-provider';
 import { probePostgres } from './providers/postgres-provider';
 import { probeRedis } from './providers/redis-provider';
+import { createScoringProvider } from './providers/scoring-provider';
 import { createStreamQueue } from './providers/stream-queue-provider';
 import { createStreamsProvider } from './providers/streams-provider';
 import { appRouter } from './trpc/router';
-import type { TrpcContext } from './trpc/context';
 
 export interface ApiRuntime {
   close: () => Promise<void>;
@@ -18,7 +21,15 @@ export interface ApiRuntime {
     port: number;
     trpcPath: string;
     ingestQueue: string;
+    graphQueue: string;
   };
+}
+
+export interface ApiRuntimeEngines {
+  systemEngine: ReturnType<typeof createSystemEngine>;
+  streamsEngine: ReturnType<typeof createStreamsEngine>;
+  scoringEngine: ReturnType<typeof createScoringEngine>;
+  apiKeysEngine: ReturnType<typeof createApiKeysEngine>;
 }
 
 export function startApiRuntime(env: ApiEnv): ApiRuntime {
@@ -28,6 +39,7 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
     },
   });
   const streamQueue = createStreamQueue(env.REDIS_URL, env.JOB_QUEUE_NAME);
+  const graphQueue = createStreamQueue(env.REDIS_URL, env.GRAPH_QUEUE_NAME);
   const systemEngine = createSystemEngine({
     postgresProbe: () => probePostgres(env.DATABASE_URL, env.HEALTH_PROBE_TIMEOUT_MS),
     redisProbe: () => probeRedis(env.REDIS_URL, env.HEALTH_PROBE_TIMEOUT_MS),
@@ -35,6 +47,12 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
   const streamsEngine = createStreamsEngine(
     createStreamsProvider(prisma, streamQueue.queue)
   );
+  const scoringEngine = createScoringEngine(
+    createScoringProvider(prisma, graphQueue.queue)
+  );
+  const apiKeysEngine = createApiKeysEngine(createApiKeysProvider(prisma), {
+    secretsMasterKey: env.SECRETS_MASTER_KEY,
+  });
 
   const requestHandler = async (request: Request): Promise<Response> => {
     const pathname = new URL(request.url).pathname;
@@ -49,9 +67,11 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
         endpoint: env.TRPC_PATH,
         req: request,
         router: appRouter,
-        createContext: (): TrpcContext => ({
+        createContext: () => ({
           systemEngine,
           streamsEngine,
+          scoringEngine,
+          apiKeysEngine,
         }),
       });
     }
@@ -71,6 +91,7 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
     shuttingDown = true;
     server.stop(true);
     await streamQueue.close();
+    await graphQueue.close();
     await prisma.$disconnect();
   };
 
@@ -82,6 +103,7 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
       port: env.API_PORT,
       trpcPath: env.TRPC_PATH,
       ingestQueue: env.JOB_QUEUE_NAME,
+      graphQueue: env.GRAPH_QUEUE_NAME,
     },
   };
 }

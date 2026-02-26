@@ -4,6 +4,7 @@ import {
   buildObjectCreatedJobId,
   objectCreatedJobPayloadSchema,
 } from '@paperscraper/shared';
+import { addJobIfMissing, createStandardJobOptions } from '../lib/queue-utils';
 
 export async function emitObjectCreatedEvents(
   queue: Queue,
@@ -18,10 +19,12 @@ export async function emitObjectCreatedEvents(
       streamRunId,
       source: 'openalex',
     });
-    await queue.add(OBJECT_CREATED_JOB_NAME, payload, {
-      jobId: buildObjectCreatedJobId(streamRunId, objectId),
-      removeOnComplete: true,
-      removeOnFail: false,
-    });
+    const jobId = buildObjectCreatedJobId(streamRunId, objectId);
+    await addJobIfMissing(
+      queue,
+      OBJECT_CREATED_JOB_NAME,
+      payload,
+      createStandardJobOptions(jobId, 3)
+    );
   }
 }

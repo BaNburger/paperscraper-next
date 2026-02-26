@@ -6,16 +6,10 @@ import {
   normalizeOpenAlexWorks,
   type NormalizedResearchObject,
 } from './openalex-normalizer';
+import { readQueueDepth } from '../lib/queue-depth';
 import type { OpenAlexFetchResult, OpenAlexRetryLog } from './openalex-provider';
 import { persistResearchObjects } from './stream-persistence';
 import { logIngestionRunEvent } from './stream-run-log';
-
-type QueueDepthSnapshot = {
-  waiting: number;
-  active: number;
-  delayed: number;
-  failed: number;
-};
 
 interface StreamRunnerDeps {
   prisma: PrismaClient;
@@ -38,16 +32,6 @@ const streamSelect = {
 
 function asReason(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown ingestion error';
-}
-
-async function getQueueDepth(queue: Queue): Promise<QueueDepthSnapshot> {
-  const counts = await queue.getJobCounts('waiting', 'active', 'delayed', 'failed');
-  return {
-    waiting: counts.waiting || 0,
-    active: counts.active || 0,
-    delayed: counts.delayed || 0,
-    failed: counts.failed || 0,
-  };
 }
 
 async function markRunFailed(
@@ -97,8 +81,8 @@ async function runSingleQueuedRun(
   }
 
   const boundaryStart = {
-    ingest: await getQueueDepth(deps.ingestQueue),
-    graph: await getQueueDepth(deps.graphQueue),
+    ingest: await readQueueDepth(deps.ingestQueue),
+    graph: await readQueueDepth(deps.graphQueue),
   };
   logIngestionRunEvent(deps.log, {
     streamId,
@@ -146,8 +130,8 @@ async function runSingleQueuedRun(
     });
 
     const boundaryEnd = {
-      ingest: await getQueueDepth(deps.ingestQueue),
-      graph: await getQueueDepth(deps.graphQueue),
+      ingest: await readQueueDepth(deps.ingestQueue),
+      graph: await readQueueDepth(deps.graphQueue),
     };
     logIngestionRunEvent(deps.log, {
       streamId,
@@ -165,8 +149,8 @@ async function runSingleQueuedRun(
     const reason = asReason(error);
     await markRunFailed(deps.prisma, runId, reason);
     const boundaryEnd = {
-      ingest: await getQueueDepth(deps.ingestQueue),
-      graph: await getQueueDepth(deps.graphQueue),
+      ingest: await readQueueDepth(deps.ingestQueue),
+      graph: await readQueueDepth(deps.graphQueue),
     };
     logIngestionRunEvent(deps.log, {
       streamId,

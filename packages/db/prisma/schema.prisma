@@ -18,6 +18,11 @@ enum StreamSource {
   openalex
 }
 
+enum ScoringProvider {
+  openai
+  anthropic
+}
+
 model Stream {
   id        String      @id @default(cuid())
   name      String
@@ -57,6 +62,7 @@ model ResearchObject {
   source       String
   title        String
   abstract     String?
+  sourceMetadata Json?
   publishedAt  DateTime?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
@@ -96,6 +102,7 @@ model ObjectEntity {
 
   @@unique([objectId, entityId, role])
   @@index([entityId])
+  @@index([objectId])
   @@map("object_entities")
 }
 
@@ -103,6 +110,8 @@ model Dimension {
   id        String        @id @default(cuid())
   name      String
   prompt    String
+  provider  ScoringProvider
+  model     String
   isActive  Boolean       @default(true)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -127,6 +136,7 @@ model ObjectScore {
 
   @@unique([dimensionId, objectId])
   @@index([objectId])
+  @@index([dimensionId])
   @@map("object_scores")
 }
 
@@ -193,7 +203,7 @@ model ObjectPipelineCard {
 
 model ApiKey {
   id           String    @id @default(cuid())
-  provider     String
+  provider     ScoringProvider
   encryptedKey String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

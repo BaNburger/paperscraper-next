@@ -78,3 +78,5 @@ export function createSystemEngine(deps: SystemEngineDeps) {
     },
   };
 }
+
+export type SystemEngine = ReturnType<typeof createSystemEngine>;

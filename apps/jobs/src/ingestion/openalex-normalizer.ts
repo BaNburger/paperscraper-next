@@ -7,6 +7,13 @@ export interface NormalizedResearchObject {
   source: 'openalex';
   title: string;
   abstract: string | null;
+  sourceMetadata: {
+    authorships: Array<{
+      authorId: string | null;
+      authorName: string;
+      position: number;
+    }>;
+  } | null;
   publishedAt: Date | null;
 }
 
@@ -40,6 +47,26 @@ export function rebuildAbstract(
   return pairs.map((item) => item.word).join(' ');
 }
 
+function normalizeAuthorships(work: OpenAlexWork): NormalizedResearchObject['sourceMetadata'] {
+  if (!work.authorships || work.authorships.length === 0) {
+    return null;
+  }
+  const authorships = [];
+  for (let index = 0; index < work.authorships.length; index += 1) {
+    const author = work.authorships[index]?.author;
+    const authorName = author?.display_name?.trim();
+    if (!authorName) {
+      continue;
+    }
+    authorships.push({
+      authorId: author?.id ?? null,
+      authorName,
+      position: index,
+    });
+  }
+  return authorships.length > 0 ? { authorships } : null;
+}
+
 export function normalizeOpenAlexWorks(works: OpenAlexWork[]): {
   normalized: NormalizedResearchObject[];
   failedCount: number;
@@ -58,6 +85,7 @@ export function normalizeOpenAlexWorks(works: OpenAlexWork[]): {
       source: 'openalex' as const,
       title: work.display_name,
       abstract: rebuildAbstract(work.abstract_inverted_index ?? null),
+      sourceMetadata: normalizeAuthorships(work),
       publishedAt,
     });
   }

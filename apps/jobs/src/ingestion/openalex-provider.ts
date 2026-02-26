@@ -1,10 +1,15 @@
-import http from 'node:http';
-import https from 'node:https';
 import { z } from 'zod';
 import { streamQuerySchema } from '@paperscraper/shared';
+import {
+  asErrorReason,
+  requestJsonWithNode,
+  withRetry,
+  type RetryEvent,
+} from '../providers/http-json';
 
 const OPENALEX_WORKS_PATH = '/works';
-const OPENALEX_SELECT_FIELDS = 'id,display_name,abstract_inverted_index,publication_date';
+const OPENALEX_SELECT_FIELDS =
+  'id,display_name,abstract_inverted_index,publication_date,authorships';
 const OPENALEX_PER_PAGE_LIMIT = 200;
 
 const openAlexResponseSchema = z.object({
@@ -18,6 +23,18 @@ export const openAlexWorkSchema = z.object({
     .record(z.string(), z.array(z.number().int().nonnegative()))
     .nullish(),
   publication_date: z.string().min(1).nullish(),
+  authorships: z
+    .array(
+      z.object({
+        author: z
+          .object({
+            id: z.string().min(1).nullish(),
+            display_name: z.string().min(1).nullish(),
+          })
+          .nullish(),
+      })
+    )
+    .nullish(),
 });
 
 type QueryMode = 'filter' | 'search';
@@ -60,16 +77,6 @@ function parseQuery(query: string): { mode: QueryMode; value: string } {
   return { mode: 'search', value: parsed.slice('search:'.length).trim() };
 }
 
-function retryDelayMs(baseDelayMs: number, attempt: number, random: () => number): number {
-  const boundedExponential = Math.min(baseDelayMs * 2 ** (attempt - 1), 4000);
-  const jitter = Math.floor(random() * Math.max(25, baseDelayMs));
-  return boundedExponential + jitter;
-}
-
-function asErrorReason(error: unknown): string {
-  return error instanceof Error ? error.message : 'Unknown OpenAlex error';
-}
-
 function createWorksUrl(
   config: OpenAlexProviderConfig,
   mode: QueryMode,
@@ -86,12 +93,12 @@ function createWorksUrl(
   return url;
 }
 
-function classifyResponseError(statusCode: number, body: unknown): Error {
+function classifyResponseError(statusCode: number, body: string): Error {
   const message = `OpenAlex request failed with status ${statusCode}`;
   if (statusCode === 429 || statusCode >= 500) {
     return new OpenAlexTransientError(message);
   }
-  const suffix = typeof body === 'string' && body.trim().length > 0 ? `: ${body.slice(0, 200)}` : '';
+  const suffix = body.trim().length > 0 ? `: ${body.slice(0, 200)}` : '';
   return new OpenAlexPermanentError(`${message}${suffix}`);
 }
 
@@ -99,63 +106,27 @@ function isRetryable(error: unknown): boolean {
   return error instanceof OpenAlexTransientError;
 }
 
-async function requestJsonWithNode(url: URL, timeoutMs: number): Promise<unknown> {
-  const client = url.protocol === 'https:' ? https : http;
-  return new Promise((resolve, reject) => {
-    const request = client.request(
-      url,
-      { method: 'GET', timeout: timeoutMs },
-      (response) => {
-        const chunks: Buffer[] = [];
-        response.on('data', (chunk) => {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        });
-        response.on('end', () => {
-          const textBody = Buffer.concat(chunks).toString('utf8');
-          const statusCode = response.statusCode || 500;
-          if (statusCode >= 400) {
-            reject(classifyResponseError(statusCode, textBody));
-            return;
-          }
-          if (!textBody) {
-            resolve({});
-            return;
-          }
-          try {
-            resolve(JSON.parse(textBody));
-          } catch {
-            reject(new OpenAlexPermanentError('OpenAlex returned invalid JSON payload.'));
-          }
-        });
-      }
-    );
-
-    request.on('timeout', () => {
-      request.destroy(
-        new OpenAlexTransientError(`OpenAlex request timeout after ${timeoutMs}ms`)
-      );
-    });
-
-    request.on('error', (error) => {
-      if (error instanceof OpenAlexPermanentError || error instanceof OpenAlexTransientError) {
-        reject(error);
-        return;
-      }
-      reject(new OpenAlexTransientError(asErrorReason(error)));
-    });
-
-    request.end();
-  });
-}
-
 function defaultDeps(): OpenAlexProviderDeps {
   return {
-    requestJson: requestJsonWithNode,
+    requestJson: async (url, timeoutMs) => {
+      const response = await requestJsonWithNode(url, {
+        method: 'GET',
+        timeoutMs,
+      });
+      if (response.statusCode >= 400) {
+        throw classifyResponseError(response.statusCode, response.textBody);
+      }
+      if (response.jsonBody === null) {
+        throw new OpenAlexPermanentError('OpenAlex returned invalid JSON payload.');
+      }
+      return response.jsonBody;
+    },
     random: () => Math.random(),
-    sleep: (delayMs: number) =>
-      new Promise((resolve) => {
+    sleep: async (delayMs) => {
+      await new Promise((resolve) => {
         setTimeout(resolve, delayMs);
-      }),
+      });
+    },
   };
 }
 
@@ -165,26 +136,28 @@ async function fetchPageWithRetry(
   url: URL,
   onRetry: ((event: OpenAlexRetryLog) => void) | undefined
 ): Promise<unknown> {
-  const maxAttempts = config.maxRetries + 1;
-  let lastError: unknown = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return await deps.requestJson(url, config.timeoutMs);
-    } catch (error) {
-      lastError = error;
-      if (!isRetryable(error) || attempt >= maxAttempts) {
-        throw error;
+  try {
+    return await withRetry(
+      () => deps.requestJson(url, config.timeoutMs),
+      {
+        maxRetries: config.maxRetries,
+        baseDelayMs: config.baseDelayMs,
+        isRetryable,
+        onRetry: (event: RetryEvent) => {
+          onRetry?.(event);
+        },
+      },
+      {
+        random: deps.random,
+        sleep: deps.sleep,
       }
-      const delayMs = retryDelayMs(config.baseDelayMs, attempt, deps.random);
-      onRetry?.({ attempt, delayMs, reason: asErrorReason(error) });
-      await deps.sleep(delayMs);
+    );
+  } catch (error) {
+    if (error instanceof OpenAlexPermanentError || error instanceof OpenAlexTransientError) {
+      throw error;
     }
+    throw new OpenAlexTransientError(asErrorReason(error));
   }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new OpenAlexTransientError('OpenAlex request failed.');
 }
 
 export function createOpenAlexProvider(

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   DEFAULT_API_PORT,
+  DEFAULT_GRAPH_QUEUE_NAME,
   DEFAULT_HEALTH_PROBE_TIMEOUT_MS,
   DEFAULT_JOB_QUEUE_NAME,
   DEFAULT_TRPC_PATH,
@@ -17,6 +18,8 @@ const apiEnvSchema = z.object({
     .positive()
     .default(DEFAULT_HEALTH_PROBE_TIMEOUT_MS),
   JOB_QUEUE_NAME: z.string().min(1).default(DEFAULT_JOB_QUEUE_NAME),
+  GRAPH_QUEUE_NAME: z.string().min(1).default(DEFAULT_GRAPH_QUEUE_NAME),
+  SECRETS_MASTER_KEY: z.string().optional(),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

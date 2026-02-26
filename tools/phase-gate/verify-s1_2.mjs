@@ -16,6 +16,13 @@ import {
   trpcQuery,
   waitFor,
 } from './runtime-utils.mjs';
+import {
+  createOpenAlexMockServer,
+  createOpenAlexMockWorks,
+  waitForHealthyApi,
+  waitForJobsReady,
+  waitForRunTerminal,
+} from './runtime-harness.mjs';
 
 const STARTUP_TIMEOUT_MS = 25000;
 const SHUTDOWN_TIMEOUT_MS = 3000;
@@ -37,59 +44,11 @@ async function probeLiveOpenAlex(apiKey) {
   console.log('[verify-s1_2] live OpenAlex probe succeeded.');
 }
 
-function createOpenAlexMockServer() {
-  const token = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const works = [
-    {
-      id: `https://openalex.org/W${token}01`,
-      display_name: 'Deterministic Stream Paper A',
-      publication_date: '2024-01-01',
-      abstract_inverted_index: { paper: [0], deterministic: [1], alpha: [2] },
-    },
-    {
-      id: `https://openalex.org/W${token}02`,
-      display_name: 'Deterministic Stream Paper B',
-      publication_date: '2024-01-02',
-      abstract_inverted_index: { paper: [0], deterministic: [1], beta: [2] },
-    },
-  ];
-  const server = http.createServer((request, response) => {
-    const url = new URL(request.url || '/', 'http://127.0.0.1');
-    if (url.pathname !== '/works') {
-      response.statusCode = 404;
-      response.end(JSON.stringify({ error: 'not found' }));
-      return;
-    }
-    const page = Number(url.searchParams.get('page') || '1');
-    response.statusCode = 200;
-    response.setHeader('content-type', 'application/json');
-    response.end(JSON.stringify({ results: page === 1 ? works : [] }));
-  });
-  return { server, externalIds: works.map((work) => work.id) };
-}
-
-async function waitForRunTerminal(baseUrl, trpcPath, streamId, runId) {
-  return waitFor(
-    `run ${runId} terminal status`,
-    async () => {
-      const runs = await trpcQuery(baseUrl, trpcPath, 'streams.runs', { streamId, limit: 5 });
-      if (!Array.isArray(runs)) {
-        return null;
-      }
-      const run = runs.find((item) => item.id === runId);
-      if (!run) {
-        return null;
-      }
-      return ['succeeded', 'failed'].includes(run.status) ? run : null;
-    },
-    STARTUP_TIMEOUT_MS
-  );
-}
-
 async function runRuntimeSmoke(root, runtimeEnv) {
   const apiPort = await findFreePort();
   const mockPort = await findFreePort();
-  const mock = createOpenAlexMockServer();
+  const token = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const mock = createOpenAlexMockServer(createOpenAlexMockWorks(token, false));
   await new Promise((resolve) => mock.server.listen(mockPort, '127.0.0.1', resolve));
   const mockBaseUrl = `http://127.0.0.1:${mockPort}`;
   const baseUrl = `http://localhost:${apiPort}`;
@@ -107,19 +66,8 @@ async function runRuntimeSmoke(root, runtimeEnv) {
   const api = createProcess(root, 'npm', ['run', 'dev:api'], smokeEnv, 'api-s1_2');
   const jobs = createProcess(root, 'npm', ['run', 'dev:jobs'], smokeEnv, 'jobs-s1_2');
   try {
-    await waitFor(
-      'healthy API',
-      async () => {
-        const health = await requestJson(`${baseUrl}/health`);
-        return health.body?.status === 'ok' ? health.body : null;
-      },
-      STARTUP_TIMEOUT_MS
-    );
-    await waitFor(
-      'jobs readiness',
-      async () => jobs.jsonLogs.find((entry) => entry.component === 'jobs-worker' && entry.state === 'ready') || null,
-      STARTUP_TIMEOUT_MS
-    );
+    await waitForHealthyApi(baseUrl, STARTUP_TIMEOUT_MS);
+    await waitForJobsReady(jobs, STARTUP_TIMEOUT_MS);
 
     const beforeCounts = await graphQueue.getJobCounts('waiting', 'active', 'delayed');
     const beforeGraphDepth = (beforeCounts.waiting || 0) + (beforeCounts.active || 0) + (beforeCounts.delayed || 0);
@@ -135,18 +83,51 @@ async function runRuntimeSmoke(root, runtimeEnv) {
 
     const firstRun = await trpcMutation(baseUrl, trpcPath, 'streams.trigger', { id: streamId });
     assert(firstRun && !firstRun.error, 'streams.trigger first run failed.');
-    const firstTerminal = await waitForRunTerminal(baseUrl, trpcPath, streamId, firstRun.id);
+    const firstTerminal = await waitForRunTerminal(
+      baseUrl,
+      trpcPath,
+      streamId,
+      firstRun.id,
+      STARTUP_TIMEOUT_MS,
+      5
+    );
     assert(firstTerminal.status === 'succeeded', `First run failed: ${firstTerminal.failureReason || 'unknown'}`);
     assert(firstTerminal.insertedCount > 0, 'Expected first run to insert objects.');
 
-    const afterFirstCounts = await graphQueue.getJobCounts('waiting', 'active', 'delayed');
-    const afterFirstGraphDepth =
-      (afterFirstCounts.waiting || 0) + (afterFirstCounts.active || 0) + (afterFirstCounts.delayed || 0);
-    assert(afterFirstGraphDepth > beforeGraphDepth, 'Expected object.created queue depth increase on first run.');
+    await waitFor(
+      'object.created evidence',
+      async () => {
+        const afterFirstCounts = await graphQueue.getJobCounts('waiting', 'active', 'delayed');
+        const afterFirstGraphDepth =
+          (afterFirstCounts.waiting || 0) +
+          (afterFirstCounts.active || 0) +
+          (afterFirstCounts.delayed || 0);
+        if (afterFirstGraphDepth > beforeGraphDepth) {
+          return { mode: 'queue-depth' };
+        }
+        const graphReadyLogs = jobs.jsonLogs.filter(
+          (entry) =>
+            entry &&
+            entry.component === 'jobs-worker' &&
+            entry.state === 'ready' &&
+            typeof entry.objectId === 'string' &&
+            typeof entry.linkedCount === 'number'
+        );
+        return graphReadyLogs.length > 0 ? { mode: 'graph-log' } : null;
+      },
+      STARTUP_TIMEOUT_MS
+    );
 
     const secondRun = await trpcMutation(baseUrl, trpcPath, 'streams.trigger', { id: streamId });
     assert(secondRun && !secondRun.error, 'streams.trigger second run failed.');
-    const secondTerminal = await waitForRunTerminal(baseUrl, trpcPath, streamId, secondRun.id);
+    const secondTerminal = await waitForRunTerminal(
+      baseUrl,
+      trpcPath,
+      streamId,
+      secondRun.id,
+      STARTUP_TIMEOUT_MS,
+      5
+    );
     assert(secondTerminal.status === 'succeeded', `Second run failed: ${secondTerminal.failureReason || 'unknown'}`);
     assert(secondTerminal.insertedCount === 0, 'Expected second run dedup to insert zero objects.');
 

@@ -129,6 +129,27 @@ Notes:
 1. `verify-s1_2` uses a local mock OpenAlex service for blocking contract checks.
 2. It also performs a live OpenAlex probe as a non-blocking warning check.
 
+## S1.3 Verification Flow
+
+1. Keep infra running and ensure env is present:
+   - `cp -n .env.example .env`
+   - `npm run infra:up`
+2. Set required scoring secrets in your shell or `.env`:
+   - `SECRETS_MASTER_KEY` (base64-encoded 32-byte key)
+   - `OPENAI_API_KEY`
+   - `ANTHROPIC_API_KEY`
+   - optional model overrides: `OPENAI_SMOKE_MODEL`, `ANTHROPIC_SMOKE_MODEL`
+3. Apply migrations:
+   - `bun run --env-file=.env.example --env-file=.env --cwd packages/db migrate:deploy`
+4. Run fast S1.3 gate:
+   - `npm run gate:phase -- --phase=S1.3`
+5. Run runtime smoke verifier (ingest -> graph resolve -> score -> fold-up):
+   - `node tools/phase-gate/verify-s1_3.mjs --mode=runtime`
+
+Notes:
+1. API and jobs start even when `SECRETS_MASTER_KEY` is missing.
+2. `apiKeys.upsert` and scoring paths fail deterministically until `SECRETS_MASTER_KEY` is configured.
+
 ## Why npm + Bun
 
 1. Root scripts use `npm run ...` as the repository control plane for lint/gates/runbooks.
