@@ -108,8 +108,26 @@ This repository is documentation-first and execution-gated. Every implementation
 6. Smoke checks:
    - `curl http://localhost:4000/health`
    - `curl "http://localhost:4000/trpc/system.health?input=%7B%7D"`
-7. Phase gate:
+7. Fast phase gate:
    - `npm run gate:phase -- --phase=S1.1`
+8. Runtime smoke gate:
+   - `node tools/phase-gate/verify-s1_1.mjs --mode=runtime`
+
+## S1.2 Verification Flow
+
+1. Keep infra running and ensure env is present:
+   - `cp -n .env.example .env`
+   - `npm run infra:up`
+2. Apply migrations:
+   - `bun run --env-file=.env.example --env-file=.env --cwd packages/db migrate:deploy`
+3. Run fast S1.2 gate:
+   - `npm run gate:phase -- --phase=S1.2`
+4. Run runtime smoke verifier (stream trigger, ingestion, dedup, queue evidence):
+   - `node tools/phase-gate/verify-s1_2.mjs --mode=runtime`
+
+Notes:
+1. `verify-s1_2` uses a local mock OpenAlex service for blocking contract checks.
+2. It also performs a live OpenAlex probe as a non-blocking warning check.
 
 ## Why npm + Bun
 

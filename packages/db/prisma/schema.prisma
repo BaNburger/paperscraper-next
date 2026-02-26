@@ -14,11 +14,16 @@ enum StreamRunStatus {
   failed
 }
 
+enum StreamSource {
+  openalex
+}
+
 model Stream {
   id        String      @id @default(cuid())
   name      String
   query     String
-  source    String
+  source    StreamSource @default(openalex)
+  maxObjects Int         @default(100)
   isActive  Boolean     @default(true)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -42,6 +47,7 @@ model StreamRun {
 
   @@index([streamId])
   @@index([status])
+  @@index([streamId, status, startedAt(sort: Desc)])
   @@map("stream_runs")
 }
 

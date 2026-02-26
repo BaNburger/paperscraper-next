@@ -3,13 +3,13 @@
     {
       "phase_id": "S1.1",
       "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
-      "required_tests": ["node tools/phase-gate/verify-s1_1.mjs"],
+      "required_tests": ["node tools/phase-gate/verify-s1_1.mjs --mode=fast"],
       "evidence": ["bootstrap log", "health check output", "schema migration output"]
     },
     {
       "phase_id": "S1.2",
       "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
-      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.2"],
+      "required_tests": ["node tools/phase-gate/verify-s1_2.mjs --mode=fast"],
       "evidence": ["stream run log", "dedup proof", "object.created queue evidence"]
     },
     {

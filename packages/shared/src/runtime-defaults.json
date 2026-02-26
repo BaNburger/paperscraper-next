@@ -1,0 +1,10 @@
+{
+  "apiPort": 4000,
+  "webPort": 3333,
+  "trpcPath": "/trpc",
+  "jobQueueName": "psn.foundation",
+  "graphQueueName": "psn.object.created",
+  "healthProbeTimeoutMs": 1000,
+  "apiBaseUrl": "http://localhost:4000",
+  "openAlexBaseUrl": "https://api.openalex.org"
+}

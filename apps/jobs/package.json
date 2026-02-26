@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@paperscraper/db": "file:../../packages/db",
     "@paperscraper/shared": "file:../../packages/shared",
     "bullmq": "^5.70.1",
     "ioredis": "^5.9.3",
