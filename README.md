@@ -150,6 +150,29 @@ Notes:
 1. API and jobs start even when `SECRETS_MASTER_KEY` is missing.
 2. `apiKeys.upsert` and scoring paths fail deterministically until `SECRETS_MASTER_KEY` is configured.
 
+## S1.4 Verification Flow
+
+1. Keep infra running and ensure env is present:
+   - `cp -n .env.example .env`
+   - `npm run infra:up`
+2. Apply migrations:
+   - `bun run --env-file=.env.example --env-file=.env --cwd packages/db migrate:deploy`
+3. Start runtimes:
+   - `npm run dev:api`
+   - `npm run dev:jobs`
+   - `npm run dev:web`
+4. Run fast S1.4 gate:
+   - `npm run gate:phase -- --phase=S1.4`
+5. Run runtime smoke verifier (ingest -> feed -> object -> entity -> pipeline operations + bundle budgets):
+   - `node tools/phase-gate/verify-s1_4.mjs --mode=runtime`
+6. Run UI interaction smoke verifier (blocking in CI):
+   - `node tools/phase-gate/verify-s1_4_ui.mjs --mode=runtime`
+
+Manual QA checklist:
+1. `/feed`: loading/empty/error states, filter/sort/cursor controls, streams/API-key side pane tabs.
+2. `/objects/<id>` and `/entities/<id>`: metadata + linked graph/score data.
+3. `/pipeline`: split board/editor layout, inline edits, add/remove card, drag/drop move with rollback on failure.
+
 ## Why npm + Bun
 
 1. Root scripts use `npm run ...` as the repository control plane for lint/gates/runbooks.

@@ -3,6 +3,7 @@ import type { NormalizedResearchObject } from './openalex-normalizer';
 
 export interface PersistResult {
   insertedIds: string[];
+  touchedObjectIds: string[];
   insertedCount: number;
   updatedCount: number;
   failedCount: number;
@@ -41,6 +42,7 @@ export async function persistResearchObjects(
   if (deduped.length === 0) {
     return {
       insertedIds: [],
+      touchedObjectIds: [],
       insertedCount: 0,
       updatedCount: 0,
       failedCount: 0,
@@ -60,6 +62,7 @@ export async function persistResearchObjects(
   const toUpdate = deduped.filter((row) => existingByExternalId.has(row.externalId));
 
   const insertedIds: string[] = [];
+  const touchedObjectIds: string[] = [];
   let insertedCount = 0;
   let updatedCount = 0;
   let failedCount = 0;
@@ -80,6 +83,7 @@ export async function persistResearchObjects(
       });
       insertedCount = insertedRows.length;
       insertedIds.push(...insertedRows.map((row) => row.id));
+      touchedObjectIds.push(...insertedRows.map((row) => row.id));
     } catch {
       for (const row of toInsert) {
         try {
@@ -96,6 +100,7 @@ export async function persistResearchObjects(
           });
           insertedCount += 1;
           insertedIds.push(inserted.id);
+          touchedObjectIds.push(inserted.id);
         } catch (error) {
           if (!isUniqueViolation(error)) {
             failedCount += 1;
@@ -123,6 +128,7 @@ export async function persistResearchObjects(
         select: { id: true },
       });
       updatedCount += 1;
+      touchedObjectIds.push(objectId);
     } catch {
       failedCount += 1;
     }
@@ -130,6 +136,7 @@ export async function persistResearchObjects(
 
   return {
     insertedIds,
+    touchedObjectIds,
     insertedCount,
     updatedCount,
     failedCount,

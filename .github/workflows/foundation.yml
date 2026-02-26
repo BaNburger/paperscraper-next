@@ -196,3 +196,54 @@ jobs:
         run: npm ci
       - name: Runtime smoke S1.3
         run: node tools/phase-gate/verify-s1_3.mjs --mode=runtime
+
+  gate-s1_4:
+    runs-on: ubuntu-latest
+    services: *foundation_services
+    env: &s1_4_env
+      <<: *s1_3_env
+      SECRETS_MASTER_KEY: ""
+      OPENAI_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint agents
+        run: npm run lint:agents
+      - name: Lint docs
+        run: npm run lint:docs
+      - name: Lint phase S1.4
+        run: npm run lint:phase -- --phase=S1.4
+      - name: Gate phase S1.4
+        run: npm run gate:phase -- --phase=S1.4
+
+  runtime-smoke-s1_4:
+    runs-on: ubuntu-latest
+    needs: gate-s1_4
+    services: *foundation_services
+    env: *s1_4_env
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Runtime smoke S1.4
+        run: node tools/phase-gate/verify-s1_4.mjs --mode=runtime
+      - name: UI smoke S1.4
+        run: node tools/phase-gate/verify-s1_4_ui.mjs --mode=runtime

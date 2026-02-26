@@ -225,6 +225,27 @@ function scanComplexityRules(content, relPath) {
     });
   }
 
+  if (
+    relPath.startsWith('apps/web/src/') &&
+    relPath !== 'apps/web/src/routeTree.gen.ts'
+  ) {
+    const anyRegex = /\bany\b/g;
+    let match;
+    while ((match = anyRegex.exec(content)) !== null) {
+      const { line, lineText } = locate(content, match.index);
+      findings.push({
+        rule_id: 'PSN015',
+        path: relPath,
+        line,
+        lineText,
+        message: "Untyped 'any' is not allowed in apps/web/src.",
+      });
+      if (match.index === anyRegex.lastIndex) {
+        anyRegex.lastIndex += 1;
+      }
+    }
+  }
+
   return findings;
 }
 

@@ -9,38 +9,107 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as FeedRouteImport } from './routes/feed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ObjectsObjectIdRouteImport } from './routes/objects.$objectId'
+import { Route as EntitiesEntityIdRouteImport } from './routes/entities.$entityId'
 
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/pipeline.lazy').then((d) => d.Route))
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/feed.lazy').then((d) => d.Route))
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ObjectsObjectIdRoute = ObjectsObjectIdRouteImport.update({
+  id: '/objects/$objectId',
+  path: '/objects/$objectId',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import('./routes/objects.$objectId.lazy').then((d) => d.Route),
+)
+const EntitiesEntityIdRoute = EntitiesEntityIdRouteImport.update({
+  id: '/entities/$entityId',
+  path: '/entities/$entityId',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import('./routes/entities.$entityId.lazy').then((d) => d.Route),
+)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/feed': typeof FeedRoute
+  '/pipeline': typeof PipelineRoute
+  '/entities/$entityId': typeof EntitiesEntityIdRoute
+  '/objects/$objectId': typeof ObjectsObjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/feed': typeof FeedRoute
+  '/pipeline': typeof PipelineRoute
+  '/entities/$entityId': typeof EntitiesEntityIdRoute
+  '/objects/$objectId': typeof ObjectsObjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/feed': typeof FeedRoute
+  '/pipeline': typeof PipelineRoute
+  '/entities/$entityId': typeof EntitiesEntityIdRoute
+  '/objects/$objectId': typeof ObjectsObjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/feed'
+    | '/pipeline'
+    | '/entities/$entityId'
+    | '/objects/$objectId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/feed' | '/pipeline' | '/entities/$entityId' | '/objects/$objectId'
+  id:
+    | '__root__'
+    | '/'
+    | '/feed'
+    | '/pipeline'
+    | '/entities/$entityId'
+    | '/objects/$objectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FeedRoute: typeof FeedRoute
+  PipelineRoute: typeof PipelineRoute
+  EntitiesEntityIdRoute: typeof EntitiesEntityIdRoute
+  ObjectsObjectIdRoute: typeof ObjectsObjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +117,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/objects/$objectId': {
+      id: '/objects/$objectId'
+      path: '/objects/$objectId'
+      fullPath: '/objects/$objectId'
+      preLoaderRoute: typeof ObjectsObjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entities/$entityId': {
+      id: '/entities/$entityId'
+      path: '/entities/$entityId'
+      fullPath: '/entities/$entityId'
+      preLoaderRoute: typeof EntitiesEntityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FeedRoute: FeedRoute,
+  PipelineRoute: PipelineRoute,
+  EntitiesEntityIdRoute: EntitiesEntityIdRoute,
+  ObjectsObjectIdRoute: ObjectsObjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

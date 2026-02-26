@@ -1,12 +1,16 @@
 import { PrismaClient } from '@paperscraper/db';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { createApiKeysEngine } from './engines/api-keys-engine';
+import { createPipelineEngine } from './engines/pipeline-engine';
+import { createQueryEngine } from './engines/query-engine';
 import { createScoringEngine } from './engines/scoring-engine';
 import { createStreamsEngine } from './engines/streams-engine';
 import { createSystemEngine } from './engines/system-engine';
 import type { ApiEnv } from './config';
 import { createApiKeysProvider } from './providers/api-keys-provider';
+import { createPipelineProvider } from './providers/pipeline-provider';
 import { probePostgres } from './providers/postgres-provider';
+import { createQueryProvider } from './providers/query-provider';
 import { probeRedis } from './providers/redis-provider';
 import { createScoringProvider } from './providers/scoring-provider';
 import { createStreamQueue } from './providers/stream-queue-provider';
@@ -30,6 +34,8 @@ export interface ApiRuntimeEngines {
   streamsEngine: ReturnType<typeof createStreamsEngine>;
   scoringEngine: ReturnType<typeof createScoringEngine>;
   apiKeysEngine: ReturnType<typeof createApiKeysEngine>;
+  queryEngine: ReturnType<typeof createQueryEngine>;
+  pipelineEngine: ReturnType<typeof createPipelineEngine>;
 }
 
 export function startApiRuntime(env: ApiEnv): ApiRuntime {
@@ -53,6 +59,8 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
   const apiKeysEngine = createApiKeysEngine(createApiKeysProvider(prisma), {
     secretsMasterKey: env.SECRETS_MASTER_KEY,
   });
+  const queryEngine = createQueryEngine(createQueryProvider(prisma));
+  const pipelineEngine = createPipelineEngine(createPipelineProvider(prisma));
 
   const requestHandler = async (request: Request): Promise<Response> => {
     const pathname = new URL(request.url).pathname;
@@ -69,10 +77,12 @@ export function startApiRuntime(env: ApiEnv): ApiRuntime {
         router: appRouter,
         createContext: () => ({
           systemEngine,
-          streamsEngine,
-          scoringEngine,
-          apiKeysEngine,
-        }),
+            streamsEngine,
+            scoringEngine,
+            apiKeysEngine,
+            queryEngine,
+            pipelineEngine,
+          }),
       });
     }
     return new Response('Not found', { status: 404 });

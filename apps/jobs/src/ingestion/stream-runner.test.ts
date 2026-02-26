@@ -17,6 +17,7 @@ function createQueue() {
 function createPrismaForRuns(runIds: string[]) {
   const runQueue = [...runIds];
   const streamRunUpdate = vi.fn(async () => ({ id: 'run' }));
+  const streamRunObjectCreateMany = vi.fn(async () => ({ count: 1 }));
 
   const prisma = {
     stream: {
@@ -35,6 +36,9 @@ function createPrismaForRuns(runIds: string[]) {
       updateMany: vi.fn(async () => ({ count: 1 })),
       update: streamRunUpdate,
     },
+    streamRunObject: {
+      createMany: streamRunObjectCreateMany,
+    },
     researchObject: {
       findMany: vi.fn(async () => []),
       createManyAndReturn: vi.fn(async () => [{ id: 'obj_1' }]),
@@ -43,14 +47,16 @@ function createPrismaForRuns(runIds: string[]) {
     },
   };
 
-  return { prisma, streamRunUpdate };
+  return { prisma, streamRunUpdate, streamRunObjectCreateMany };
 }
 
 describe('stream runner', () => {
   it('processes a queued run and emits object.created for inserted rows', async () => {
     const ingestQueue = createQueue();
     const graphQueue = createQueue();
-    const { prisma, streamRunUpdate } = createPrismaForRuns(['run_1']);
+    const { prisma, streamRunUpdate, streamRunObjectCreateMany } = createPrismaForRuns([
+      'run_1',
+    ]);
 
     await runIngestStreamRunner(
       {
@@ -77,6 +83,7 @@ describe('stream runner', () => {
     );
 
     expect(graphQueue.add).toHaveBeenCalledTimes(1);
+    expect(streamRunObjectCreateMany).toHaveBeenCalledTimes(1);
     expect(streamRunUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

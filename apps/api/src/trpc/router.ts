@@ -5,6 +5,17 @@ import {
   dimensionCreateInputSchema,
   dimensionDeleteInputSchema,
   dimensionsListInputSchema,
+  entityDetailInputSchema,
+  objectDetailInputSchema,
+  objectsFeedInputSchema,
+  pipelineAddCardInputSchema,
+  pipelineCreateInputSchema,
+  pipelineDeleteInputSchema,
+  pipelineGetBoardInputSchema,
+  pipelineMoveCardInputSchema,
+  pipelineRemoveCardInputSchema,
+  pipelinesListInputSchema,
+  pipelineUpdateInputSchema,
   dimensionUpdateInputSchema,
   scoreBackfillDimensionInputSchema,
   streamCreateInputSchema,
@@ -73,6 +84,47 @@ export const appRouter = t.router({
       .input(apiKeyRevokeInputSchema)
       .mutation(async ({ ctx, input }) => ctx.apiKeysEngine.revoke(input)),
     listProviders: t.procedure.query(async ({ ctx }) => ctx.apiKeysEngine.listProviders()),
+  }),
+  objects: t.router({
+    feed: t.procedure
+      .input(objectsFeedInputSchema.optional())
+      .query(async ({ ctx, input }) =>
+        ctx.queryEngine.feed(input ?? { sortBy: 'topScore', limit: 20 })
+      ),
+    detail: t.procedure
+      .input(objectDetailInputSchema)
+      .query(async ({ ctx, input }) => ctx.queryEngine.objectDetail(input)),
+  }),
+  entities: t.router({
+    detail: t.procedure
+      .input(entityDetailInputSchema)
+      .query(async ({ ctx, input }) => ctx.queryEngine.entityDetail(input)),
+  }),
+  pipelines: t.router({
+    list: t.procedure
+      .input(pipelinesListInputSchema.optional())
+      .query(async ({ ctx, input }) => ctx.pipelineEngine.list(input ?? {})),
+    create: t.procedure
+      .input(pipelineCreateInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.create(input)),
+    update: t.procedure
+      .input(pipelineUpdateInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.update(input)),
+    delete: t.procedure
+      .input(pipelineDeleteInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.delete(input)),
+    getBoard: t.procedure
+      .input(pipelineGetBoardInputSchema.optional())
+      .query(async ({ ctx, input }) => ctx.pipelineEngine.getBoard(input ?? {})),
+    addCard: t.procedure
+      .input(pipelineAddCardInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.addCard(input)),
+    moveCard: t.procedure
+      .input(pipelineMoveCardInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.moveCard(input)),
+    removeCard: t.procedure
+      .input(pipelineRemoveCardInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.removeCard(input)),
   }),
 });
 

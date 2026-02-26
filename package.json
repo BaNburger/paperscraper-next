@@ -18,8 +18,12 @@
     "gate:phase": "node tools/phase-gate/gate-phase.mjs",
     "gate:stage1": "node tools/phase-gate/gate-stage1.mjs",
     "gate:stage2": "node tools/phase-gate/gate-stage2.mjs",
+    "check:web:budgets": "node tools/phase-gate/check-web-budgets.mjs",
     "check:touched:backend": "node tools/phase-gate/check-touched-backend.mjs",
     "check:touched:frontend": "node tools/phase-gate/check-touched-frontend.mjs",
     "quality:premerge": "npm run lint:agents && npm run lint:docs && npm run gate:stage1 && npm run gate:stage2"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
   }
 }

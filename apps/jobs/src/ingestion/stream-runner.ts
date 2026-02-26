@@ -50,6 +50,25 @@ async function markRunFailed(
   });
 }
 
+async function persistRunObjectLineage(
+  prisma: PrismaClient,
+  streamRunId: string,
+  streamId: string,
+  objectIds: string[]
+): Promise<void> {
+  if (objectIds.length === 0) {
+    return;
+  }
+  await prisma.streamRunObject.createMany({
+    data: objectIds.map((objectId) => ({
+      streamRunId,
+      streamId,
+      objectId,
+    })),
+    skipDuplicates: true,
+  });
+}
+
 function summarizeNormalization(
   fetched: OpenAlexFetchResult
 ): { normalized: NormalizedResearchObject[]; failedCount: number } {
@@ -106,6 +125,12 @@ async function runSingleQueuedRun(
     });
     const normalized = summarizeNormalization(fetched);
     const persisted = await persistResearchObjects(deps.prisma, normalized.normalized);
+    await persistRunObjectLineage(
+      deps.prisma,
+      runId,
+      stream.id,
+      persisted.touchedObjectIds
+    );
 
     await emitObjectCreatedEvents(
       deps.graphQueue,

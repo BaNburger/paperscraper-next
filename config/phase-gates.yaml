@@ -21,8 +21,16 @@
     {
       "phase_id": "S1.4",
       "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
-      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.4"],
-      "evidence": ["feed/object/entity/pipeline flows", "responsive checks", "error-state checks"]
+      "required_tests": [
+        "node tools/phase-gate/verify-s1_4.mjs --mode=fast",
+        "node tools/phase-gate/verify-s1_4_ui.mjs --mode=fast"
+      ],
+      "evidence": [
+        "feed/object/entity/pipeline flows",
+        "responsive checks",
+        "error-state checks",
+        "ui interaction smoke"
+      ]
     },
     {
       "phase_id": "S1.EXIT",

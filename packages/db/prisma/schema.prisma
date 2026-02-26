@@ -33,6 +33,7 @@ model Stream {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   runs      StreamRun[]
+  runObjects StreamRunObject[]
 
   @@map("streams")
 }
@@ -49,11 +50,28 @@ model StreamRun {
   failedCount    Int      @default(0)
   failureReason  String?
   stream         Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  objects        StreamRunObject[]
 
   @@index([streamId])
   @@index([status])
   @@index([streamId, status, startedAt(sort: Desc)])
   @@map("stream_runs")
+}
+
+model StreamRunObject {
+  id          String         @id @default(cuid())
+  streamRunId String
+  streamId    String
+  objectId    String
+  createdAt   DateTime       @default(now())
+  streamRun   StreamRun      @relation(fields: [streamRunId], references: [id], onDelete: Cascade)
+  stream      Stream         @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  object      ResearchObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([streamRunId, objectId])
+  @@index([streamId, objectId])
+  @@index([objectId])
+  @@map("stream_run_objects")
 }
 
 model ResearchObject {
@@ -69,6 +87,7 @@ model ResearchObject {
   objectLinks  ObjectEntity[]
   scores       ObjectScore[]
   pipelineCard ObjectPipelineCard[]
+  streamRuns   StreamRunObject[]
 
   @@unique([externalId, source])
   @@index([publishedAt])
@@ -198,6 +217,7 @@ model ObjectPipelineCard {
 
   @@unique([pipelineId, objectId])
   @@index([stageId, position])
+  @@index([pipelineId, stageId, position])
   @@map("object_pipeline_cards")
 }
 

@@ -10,9 +10,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@paperscraper/shared": "file:../../packages/shared",
+    "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.162.9",
     "@tanstack/react-start": "^1.162.9",
+    "@trpc/client": "^11.10.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

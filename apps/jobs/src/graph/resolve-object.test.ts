@@ -110,4 +110,61 @@ describe('graph resolver', () => {
       })
     );
   });
+
+  it('reuses existing entity by name when create hits unique violation', async () => {
+    const graphQueue = createGraphQueue();
+    const prisma = {
+      researchObject: {
+        findUnique: vi.fn(async () => ({
+          id: 'obj_1',
+          sourceMetadata: {
+            authorships: [
+              {
+                authorId: 'https://openalex.org/A2',
+                authorName: 'Ada Lovelace',
+                position: 0,
+              },
+            ],
+          },
+        })),
+      },
+      entity: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ id: 'ent_existing' }),
+        findMany: vi.fn(async () => []),
+        create: vi.fn(async () => {
+          const error = new Error('Unique constraint failed');
+          (error as Error & { code?: string }).code = 'P2002';
+          throw error;
+        }),
+      },
+      objectEntity: {
+        upsert: vi.fn(async () => ({ id: 'link_1' })),
+      },
+    };
+
+    await runGraphResolveObject(
+      {
+        prisma: prisma as never,
+        graphQueue: graphQueue as never,
+        log: () => undefined,
+      },
+      {
+        objectId: 'obj_1',
+        streamId: 'stream_1',
+        streamRunId: 'run_1',
+        source: 'openalex',
+      }
+    );
+
+    expect(prisma.entity.create).toHaveBeenCalledTimes(1);
+    expect(prisma.objectEntity.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ entityId: 'ent_existing' }),
+      })
+    );
+    expect(graphQueue.add).toHaveBeenCalledTimes(1);
+  });
 });

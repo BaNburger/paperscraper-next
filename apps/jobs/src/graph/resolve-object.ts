@@ -39,6 +39,14 @@ function normalizeName(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const maybeCode = (error as { code?: unknown }).code;
+  return maybeCode === 'P2002';
+}
+
 function emitLog(
   log: ((entry: Record<string, unknown>) => void) | undefined,
   payload: Omit<z.infer<typeof graphRunLogSchema>, 'component'>
@@ -93,15 +101,32 @@ async function resolveEntityId(
     }
   }
 
-  const created = await prisma.entity.create({
-    data: {
-      kind: 'author',
-      name: author.authorName,
-      externalId: author.authorId,
-    },
-    select: { id: true },
-  });
-  return created.id;
+  try {
+    const created = await prisma.entity.create({
+      data: {
+        kind: 'author',
+        name: author.authorName,
+        externalId: author.authorId,
+      },
+      select: { id: true },
+    });
+    return created.id;
+  } catch (error) {
+    if (!isUniqueViolation(error)) {
+      throw error;
+    }
+    const byName = await prisma.entity.findFirst({
+      where: {
+        kind: 'author',
+        name: author.authorName,
+      },
+      select: { id: true },
+    });
+    if (byName) {
+      return byName.id;
+    }
+    throw error;
+  }
 }
 
 async function enqueueObjectReady(graphQueue: Queue, objectId: string): Promise<void> {
