@@ -35,14 +35,21 @@
     {
       "phase_id": "S1.EXIT",
       "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
-      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S1.EXIT"],
+      "required_tests": ["node tools/phase-gate/verify-s1_exit.mjs --mode=fast"],
       "evidence": ["golden-path e2e", "performance report", "acceptance report"]
     },
     {
       "phase_id": "S2.W1",
       "required_commands": ["npm run check:touched:backend", "npm run check:touched:frontend"],
-      "required_tests": ["node tools/phase-gate/phase-test-placeholder.mjs --phase=S2.W1"],
-      "evidence": ["interaction-step comparison", "saved-view persistence", "keyboard and batch behavior"]
+      "required_tests": ["node tools/phase-gate/verify-s2_w1.mjs --mode=fast"],
+      "evidence": [
+        "interaction-step comparison",
+        "saved-view persistence",
+        "keyboard and batch behavior",
+        "theme and design-system parity evidence",
+        "object-note persistence and conflict evidence",
+        "density and resizable pane persistence evidence"
+      ]
     },
     {
       "phase_id": "S2.W2",

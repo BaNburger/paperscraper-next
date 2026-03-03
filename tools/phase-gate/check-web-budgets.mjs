@@ -7,6 +7,7 @@ const BUDGETS = [
   { name: 'framework', pattern: /^framework-.*\.js$/, maxBytes: 390_000 },
   { name: 'feed.lazy', pattern: /^feed\.lazy-.*\.js$/, maxBytes: 35_000 },
   { name: 'pipeline.lazy', pattern: /^pipeline\.lazy-.*\.js$/, maxBytes: 80_000 },
+  { name: 'editor', pattern: /^editor-.*\.js$/, maxBytes: 1_600_000 },
   { name: 'api-client', pattern: /^api-client-.*\.js$/, maxBytes: 130_000 },
 ];
 

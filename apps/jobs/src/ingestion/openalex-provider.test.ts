@@ -101,19 +101,27 @@ describe('openalex provider', () => {
     await expect(provider.fetchWorks('search:llm', 10)).rejects.toBeInstanceOf(OpenAlexPermanentError);
   });
 
-  it('requires API key', async () => {
+  it('supports anonymous OpenAlex mode when API key is not set', async () => {
+    const requestJson = vi.fn(async (url: URL) => {
+      expect(url.searchParams.get('api_key')).toBeNull();
+      return { results: [] };
+    });
+
     const provider = createOpenAlexProvider(
       {
         ...createConfig(),
         apiKey: '',
       },
       {
-        requestJson: async () => ({ results: [] }),
+        requestJson,
         sleep: async () => undefined,
         random: () => 0,
       }
     );
 
-    await expect(provider.fetchWorks('search:llm', 10)).rejects.toBeInstanceOf(OpenAlexPermanentError);
+    const result = await provider.fetchWorks('search:llm', 10);
+    expect(result.works).toHaveLength(0);
+    expect(result.processedCount).toBe(0);
+    expect(result.failedCount).toBe(0);
   });
 });

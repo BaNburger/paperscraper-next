@@ -78,6 +78,18 @@ function createEngine() {
       },
       stages: [],
     }),
+    addCardsBatch: async () => ({
+      pipelineId: 'pipe_1',
+      stageId: 'stage_1',
+      added: 1,
+      skippedAlreadyPresent: 0,
+      addedCardIds: ['card_1'],
+    }),
+    removeCardsBatch: async () => ({
+      pipelineId: 'pipe_1',
+      removed: 1,
+      missing: 0,
+    }),
   });
 }
 
@@ -119,5 +131,16 @@ describe('pipeline engine', () => {
     await expect(
       engine.removeCard({ pipelineId: 'pipe_1', cardId: 'card_1' })
     ).resolves.toBeDefined();
+    const batch = await engine.addCardsBatch({
+      pipelineId: 'pipe_1',
+      stageId: 'stage_1',
+      objectIds: ['obj_1'],
+    });
+    expect(batch.addedCardIds).toHaveLength(1);
+    const removed = await engine.removeCardsBatch({
+      pipelineId: 'pipe_1',
+      cardIds: ['card_1'],
+    });
+    expect(removed.removed).toBe(1);
   });
 });

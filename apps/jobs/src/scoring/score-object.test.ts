@@ -114,4 +114,46 @@ describe('score object', () => {
     expect(prisma.objectScore.upsert).toHaveBeenCalledTimes(1);
     expect(graphQueue.add).toHaveBeenCalledTimes(1);
   });
+
+  it('trims and bounds long title/abstract before scoring call', async () => {
+    const key = Buffer.alloc(32, 7);
+    const encryptedKey = encryptSecret('sk-live-openai', key);
+    const graphQueue = createGraphQueue();
+    const prisma = createBasePrisma(encryptedKey);
+    prisma.researchObject.findUnique = vi.fn(async () => ({
+      id: 'obj_1',
+      title: `Title ${'T'.repeat(700)}`,
+      abstract: `Line one\\n${'A '.repeat(4000)}`,
+    }));
+    const openAiScorer = {
+      scoreObject: vi.fn(async (_input: { title: string; abstract: string | null }) => ({
+        value: 77,
+        explanation: 'Consistent and relevant',
+      })),
+    };
+    const anthropicScorer = { scoreObject: vi.fn(async () => ({ value: 50, explanation: 'ok' })) };
+
+    await runScoreObject(
+      {
+        prisma: prisma as never,
+        graphQueue: graphQueue as never,
+        openAiScorer,
+        anthropicScorer,
+        secretsMasterKey: key.toString('base64'),
+        log: () => undefined,
+      },
+      { objectId: 'obj_1', dimensionId: 'dim_1', source: 'openalex' },
+      1
+    );
+
+    expect(openAiScorer.scoreObject).toHaveBeenCalled();
+    const firstCall = openAiScorer.scoreObject.mock.calls[0];
+    expect(firstCall).toBeDefined();
+    const payload = firstCall![0];
+    expect(typeof payload.title).toBe('string');
+    expect(typeof payload.abstract).toBe('string');
+    expect(payload.title.length).toBeLessThanOrEqual(500);
+    const abstractText = payload.abstract || '';
+    expect(abstractText.length).toBeLessThanOrEqual(5000);
+  });
 });

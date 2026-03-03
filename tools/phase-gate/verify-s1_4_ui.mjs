@@ -36,6 +36,7 @@ async function runRuntimeUiSmoke(root, runtimeEnv) {
     API_PORT: String(apiPort),
     WEB_PORT: String(webPort),
     VITE_API_BASE_URL: `http://localhost:${apiPort}`,
+    CORS_ALLOWED_ORIGINS: `http://localhost:${webPort}`,
     OPENALEX_BASE_URL: `http://127.0.0.1:${mockPort}`,
     OPENALEX_API_KEY: runtimeEnv.OPENALEX_API_KEY || 'local-openalex-key',
     SECRETS_MASTER_KEY: runtimeEnv.SECRETS_MASTER_KEY || ZERO_KEY_BASE64,
@@ -89,6 +90,16 @@ async function runRuntimeUiSmoke(root, runtimeEnv) {
 
     await page.goto(`${webBaseUrl}/feed`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="feed-screen"]');
+    await page.waitForFunction(
+      (streamId) => {
+        const select = document.querySelector('[data-testid="feed-filter-stream"]');
+        if (!(select instanceof HTMLSelectElement)) {
+          return false;
+        }
+        return Array.from(select.options).some((option) => option.value === streamId);
+      },
+      createdStream.id
+    );
     await page.selectOption('[data-testid="feed-filter-stream"]', createdStream.id);
     await page.click('[data-testid="feed-apply"]');
     const hasObjectCard = await page

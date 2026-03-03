@@ -90,6 +90,18 @@ export async function requestJsonWithNode(
   const client = url.protocol === 'https:' ? https : http;
   return new Promise((resolve, reject) => {
     const bodyText = options.body === undefined ? null : JSON.stringify(options.body);
+    let hardTimeout: ReturnType<typeof setTimeout> | null = null;
+    let settled = false;
+    const settle = <T>(fn: () => T): T | undefined => {
+      if (settled) {
+        return undefined;
+      }
+      settled = true;
+      if (hardTimeout) {
+        clearTimeout(hardTimeout);
+      }
+      return fn();
+    };
     const request = client.request(
       url,
       {
@@ -120,21 +132,31 @@ export async function requestJsonWithNode(
               jsonBody = null;
             }
           }
-          resolve({
-            statusCode: response.statusCode || 500,
-            textBody,
-            jsonBody,
-          });
+          settle(() =>
+            resolve({
+              statusCode: response.statusCode || 500,
+              textBody,
+              jsonBody,
+            })
+          );
         });
       }
     );
 
+    const failWithTimeout = () => {
+      const timeoutError = new Error(`HTTP request timeout after ${options.timeoutMs}ms`);
+      settle(() => reject(timeoutError));
+      request.destroy(timeoutError);
+    };
+
+    hardTimeout = setTimeout(failWithTimeout, options.timeoutMs);
+
     request.on('timeout', () => {
-      request.destroy(new Error(`HTTP request timeout after ${options.timeoutMs}ms`));
+      failWithTimeout();
     });
 
     request.on('error', (error) => {
-      reject(error);
+      settle(() => reject(error));
     });
 
     if (bodyText) {

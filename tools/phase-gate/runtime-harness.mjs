@@ -97,3 +97,73 @@ export async function waitForRunTerminal(
     timeoutMs
   );
 }
+
+export async function waitForScoringMetrics(
+  db,
+  runId,
+  dimensionId,
+  timeoutMs
+) {
+  return waitFor(
+    'scoring metrics',
+    async () => {
+      const rows = await db.query(
+        `SELECT
+           COUNT(*)::int AS "objectCount",
+           COUNT(os."id")::int AS "scoredCount",
+           MIN(os."createdAt") AS "firstScoreAt"
+         FROM "stream_run_objects" sro
+         LEFT JOIN "object_scores" os
+           ON os."objectId" = sro."objectId"
+          AND os."dimensionId" = $2
+         WHERE sro."streamRunId" = $1`,
+        [runId, dimensionId]
+      );
+      const objectCount = Number(rows.rows[0]?.objectCount || 0);
+      const scoredCount = Number(rows.rows[0]?.scoredCount || 0);
+      const firstScoreAt = rows.rows[0]?.firstScoreAt
+        ? new Date(rows.rows[0].firstScoreAt)
+        : null;
+      if (objectCount === 0 || scoredCount === 0 || !firstScoreAt) {
+        return null;
+      }
+      return { objectCount, scoredCount, firstScoreAt };
+    },
+    timeoutMs
+  );
+}
+
+export function createTransientOpenAlexMockServer(seed, includeAuthorships = true) {
+  const works = createOpenAlexMockWorks(seed, includeAuthorships);
+  let transientFailurePending = true;
+
+  const server = http.createServer((request, response) => {
+    const url = new URL(request.url || '/', 'http://127.0.0.1');
+    if (url.pathname !== '/works') {
+      response.statusCode = 404;
+      response.end(JSON.stringify({ error: 'not found' }));
+      return;
+    }
+
+    const page = Number(url.searchParams.get('page') || '1');
+    if (page === 1 && transientFailurePending) {
+      transientFailurePending = false;
+      response.statusCode = 503;
+      response.setHeader('content-type', 'application/json');
+      response.end(
+        JSON.stringify({ error: 'transient outage injected for S1.EXIT' })
+      );
+      return;
+    }
+
+    response.statusCode = 200;
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ results: page === 1 ? works : [] }));
+  });
+
+  return {
+    server,
+    externalIds: works.map((work) => work.id),
+    didInjectTransient: () => transientFailurePending === false,
+  };
+}

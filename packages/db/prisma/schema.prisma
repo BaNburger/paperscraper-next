@@ -88,6 +88,7 @@ model ResearchObject {
   scores       ObjectScore[]
   pipelineCard ObjectPipelineCard[]
   streamRuns   StreamRunObject[]
+  note         ObjectNote?
 
   @@unique([externalId, source])
   @@index([publishedAt])
@@ -231,4 +232,42 @@ model ApiKey {
 
   @@unique([provider])
   @@map("api_keys")
+}
+
+model FeedSavedView {
+  id         String   @id @default(cuid())
+  name       String
+  definition Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([name])
+  @@index([updatedAt(sort: Desc)])
+  @@map("feed_saved_views")
+}
+
+model WorkspacePreference {
+  id        String   @id @default(cuid())
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key])
+  @@index([updatedAt(sort: Desc)])
+  @@map("workspace_preferences")
+}
+
+model ObjectNote {
+  id        String         @id @default(cuid())
+  objectId  String
+  document  Json
+  revision  Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  object    ResearchObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([objectId])
+  @@index([updatedAt(sort: Desc)])
+  @@map("object_notes")
 }

@@ -115,7 +115,6 @@ export function createOpenAiScorer(
       const url = new URL('/v1/chat/completions', config.baseUrl);
       const body = {
         model: input.model,
-        temperature: 0,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },

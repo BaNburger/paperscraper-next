@@ -46,10 +46,12 @@ function loadRuntimeDefaults(root) {
 
 export function loadRuntimeEnv(root, overrides = {}) {
   const defaults = loadRuntimeDefaults(root);
+  const envExample = readEnvFile(path.join(root, '.env.example'));
+  const envLocal = readEnvFile(path.join(root, '.env'));
   const runtimeEnv = {
+    ...envExample,
+    ...envLocal,
     ...process.env,
-    ...readEnvFile(path.join(root, '.env.example')),
-    ...readEnvFile(path.join(root, '.env')),
     ...overrides,
   };
   runtimeEnv.API_PORT = runtimeEnv.API_PORT || String(defaults.apiPort);
@@ -68,11 +70,11 @@ export function loadRuntimeEnv(root, overrides = {}) {
   runtimeEnv.OPENAI_BASE_URL = runtimeEnv.OPENAI_BASE_URL || defaults.openAiBaseUrl;
   runtimeEnv.ANTHROPIC_BASE_URL =
     runtimeEnv.ANTHROPIC_BASE_URL || defaults.anthropicBaseUrl;
-  runtimeEnv.OPENAI_TIMEOUT_MS = runtimeEnv.OPENAI_TIMEOUT_MS || '6000';
+  runtimeEnv.OPENAI_TIMEOUT_MS = runtimeEnv.OPENAI_TIMEOUT_MS || '30000';
   runtimeEnv.OPENAI_MAX_RETRIES = runtimeEnv.OPENAI_MAX_RETRIES || '2';
   runtimeEnv.OPENAI_RETRY_BASE_DELAY_MS =
     runtimeEnv.OPENAI_RETRY_BASE_DELAY_MS || '250';
-  runtimeEnv.ANTHROPIC_TIMEOUT_MS = runtimeEnv.ANTHROPIC_TIMEOUT_MS || '6000';
+  runtimeEnv.ANTHROPIC_TIMEOUT_MS = runtimeEnv.ANTHROPIC_TIMEOUT_MS || '30000';
   runtimeEnv.ANTHROPIC_MAX_RETRIES = runtimeEnv.ANTHROPIC_MAX_RETRIES || '2';
   runtimeEnv.ANTHROPIC_RETRY_BASE_DELAY_MS =
     runtimeEnv.ANTHROPIC_RETRY_BASE_DELAY_MS || '250';

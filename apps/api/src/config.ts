@@ -12,6 +12,10 @@ const apiEnvSchema = z.object({
   REDIS_URL: z.string().min(1),
   API_PORT: z.coerce.number().int().positive().default(DEFAULT_API_PORT),
   TRPC_PATH: z.string().min(1).default(DEFAULT_TRPC_PATH),
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .min(1)
+    .default('http://localhost:3333'),
   HEALTH_PROBE_TIMEOUT_MS: z.coerce
     .number()
     .int()

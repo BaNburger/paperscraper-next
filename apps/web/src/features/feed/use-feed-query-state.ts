@@ -30,10 +30,22 @@ export function useFeedQueryState() {
     setDraft((current) => ({ ...current, ...patch }));
   }
 
+  function replaceDraft(next: FeedFilters): void {
+    setDraft(normalizeFilters(next));
+  }
+
   function applyDraft(): void {
     setCursor(undefined);
     setCursorHistory([]);
     setActive(normalizeFilters(draft));
+  }
+
+  function applyFilters(next: FeedFilters): void {
+    const normalized = normalizeFilters(next);
+    setDraft(normalized);
+    setCursor(undefined);
+    setCursorHistory([]);
+    setActive(normalized);
   }
 
   function moveCursorNext(nextCursor: string | null): void {
@@ -61,7 +73,9 @@ export function useFeedQueryState() {
     input,
     cursorHistory,
     patchDraft,
+    replaceDraft,
     applyDraft,
+    applyFilters,
     moveCursorNext,
     moveCursorPrevious,
   };

@@ -23,11 +23,11 @@ const jobsEnvSchema = z.object({
   OPENALEX_MAX_RETRIES: z.coerce.number().int().positive().default(3),
   OPENALEX_RETRY_BASE_DELAY_MS: z.coerce.number().int().positive().default(250),
   OPENAI_BASE_URL: z.string().url().default(DEFAULT_OPENAI_BASE_URL),
-  OPENAI_TIMEOUT_MS: z.coerce.number().int().positive().default(6000),
+  OPENAI_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
   OPENAI_MAX_RETRIES: z.coerce.number().int().positive().default(2),
   OPENAI_RETRY_BASE_DELAY_MS: z.coerce.number().int().positive().default(250),
   ANTHROPIC_BASE_URL: z.string().url().default(DEFAULT_ANTHROPIC_BASE_URL),
-  ANTHROPIC_TIMEOUT_MS: z.coerce.number().int().positive().default(6000),
+  ANTHROPIC_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
   ANTHROPIC_MAX_RETRIES: z.coerce.number().int().positive().default(2),
   ANTHROPIC_RETRY_BASE_DELAY_MS: z.coerce.number().int().positive().default(250),
 });

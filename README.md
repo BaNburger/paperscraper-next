@@ -173,6 +173,34 @@ Manual QA checklist:
 2. `/objects/<id>` and `/entities/<id>`: metadata + linked graph/score data.
 3. `/pipeline`: split board/editor layout, inline edits, add/remove card, drag/drop move with rollback on failure.
 
+## S1.EXIT Verification Flow
+
+S1.EXIT is acceptance-only and adds no new product features.
+
+1. Keep infra running and ensure env is present:
+   - `cp -n .env.example .env`
+   - `npm run infra:up`
+2. Ensure required runtime secrets are set for runtime mode:
+   - `SECRETS_MASTER_KEY`
+   - `OPENAI_API_KEY`
+   - optional `OPENAI_SMOKE_MODEL` (default `gpt-4o-mini`)
+3. Run fast exit gate:
+   - `npm run gate:phase -- --phase=S1.EXIT`
+4. Run strict runtime acceptance verifier:
+   - `node tools/phase-gate/verify-s1_exit.mjs --mode=runtime`
+5. Run Stage 1 aggregate gate:
+   - `npm run gate:stage1`
+
+Runtime acceptance evidence is written to:
+1. `artifacts/stage1-acceptance/latest/summary.json`
+2. `artifacts/stage1-acceptance/latest/metrics.json`
+3. `artifacts/stage1-acceptance/latest/events.json`
+4. `artifacts/stage1-acceptance/latest/report.md`
+
+Blocking runtime thresholds:
+1. Time to first score `< 60s`
+2. Feed benchmark p95 DB execution time `<= 200ms`
+
 ## Why npm + Bun
 
 1. Root scripts use `npm run ...` as the repository control plane for lint/gates/runbooks.

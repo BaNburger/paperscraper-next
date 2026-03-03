@@ -6,4 +6,29 @@
 # - reason
 # - owner
 # - expires_on (ISO date)
-[]
+[
+  {
+    "rule_id": "PSN010",
+    "path": "apps/web/src/features/feed/feed-modern-view.tsx",
+    "match": "import type",
+    "reason": "S2.W1 dense UI surface composes many callback props; split refactor is tracked post-gate.",
+    "owner": "codex",
+    "expires_on": "2026-04-30"
+  },
+  {
+    "rule_id": "PSN010",
+    "path": "apps/web/src/features/feed/feed-operations-modern-pane.tsx",
+    "match": "import { useMemo, useState }",
+    "reason": "Stream/API operations pane has temporary callback density pending extraction to hook modules.",
+    "owner": "codex",
+    "expires_on": "2026-04-30"
+  },
+  {
+    "rule_id": "PSN010",
+    "path": "apps/web/src/features/feed/feed-screen-render.tsx",
+    "match": "import type",
+    "reason": "Presenter component intentionally centralizes feed callbacks for S2.W1 cutover; to be decomposed after stabilization.",
+    "owner": "codex",
+    "expires_on": "2026-04-30"
+  }
+]

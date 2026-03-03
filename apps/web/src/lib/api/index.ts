@@ -5,3 +5,4 @@ export * from './objects';
 export * from './pipelines';
 export * from './streams';
 export * from './trpc';
+export * from './workspace';

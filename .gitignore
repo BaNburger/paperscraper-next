@@ -1,3 +1,6 @@
+# macOS
+.DS_Store
+
 # PM documents, planning and research
 research/
 
@@ -12,6 +15,7 @@ data/initiatives.db-journal
 data/exports/*.json
 data/exports/*.csv
 reports/latest/phase1_summary.md
+artifacts/stage1-acceptance/
 
 # Node workspaces
 node_modules/

@@ -53,6 +53,9 @@ type LoadedScoreContext = {
   };
 };
 
+const MAX_SCORING_TITLE_CHARS = 500;
+const MAX_SCORING_ABSTRACT_CHARS = 5000;
+
 function emitLog(
   log: ((entry: Record<string, unknown>) => void) | undefined,
   payload: Omit<z.infer<typeof scoringRunLogSchema>, 'component'>
@@ -79,6 +82,27 @@ function normalizeJsonMetadata(value: unknown): Prisma.InputJsonValue | undefine
     return undefined;
   }
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function compactScoringText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeTitleForScoring(title: string): string {
+  const compact = compactScoringText(title);
+  return compact.length > MAX_SCORING_TITLE_CHARS
+    ? compact.slice(0, MAX_SCORING_TITLE_CHARS)
+    : compact;
+}
+
+function normalizeAbstractForScoring(abstract: string | null): string | null {
+  if (!abstract) {
+    return null;
+  }
+  const compact = compactScoringText(abstract);
+  return compact.length > MAX_SCORING_ABSTRACT_CHARS
+    ? compact.slice(0, MAX_SCORING_ABSTRACT_CHARS)
+    : compact;
 }
 
 async function loadScoreContext(
@@ -248,8 +272,8 @@ export async function runScoreObject(
       apiKey: plaintextKey,
       model: loaded.dimension.model,
       dimensionPrompt: loaded.dimension.prompt,
-      title: loaded.object.title,
-      abstract: loaded.object.abstract,
+      title: normalizeTitleForScoring(loaded.object.title),
+      abstract: normalizeAbstractForScoring(loaded.object.abstract),
     });
 
     await persistScore(deps, payload, output);

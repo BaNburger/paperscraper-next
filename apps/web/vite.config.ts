@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   build: {
@@ -16,6 +17,13 @@ export default defineConfig({
             return 'api-client';
           }
           if (
+            id.includes('/node_modules/@blocknote/') ||
+            id.includes('/node_modules/prosemirror-') ||
+            id.includes('/node_modules/y-prosemirror/')
+          ) {
+            return 'editor';
+          }
+          if (
             id.includes('/node_modules/react/') ||
             id.includes('/node_modules/react-dom/') ||
             id.includes('/node_modules/@tanstack/react-query/') ||
@@ -28,5 +36,10 @@ export default defineConfig({
       },
     },
   },
-  plugins: [tsconfigPaths({ projects: ['./tsconfig.json'] }), tanstackStart(), viteReact()],
+  plugins: [
+    tsconfigPaths({ projects: ['./tsconfig.json'] }),
+    tanstackStart(),
+    tailwindcss(),
+    viteReact(),
+  ],
 });

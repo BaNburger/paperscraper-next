@@ -91,6 +91,7 @@ async function runRuntimeSmoke(root, runtimeEnv) {
     API_PORT: String(apiPort),
     WEB_PORT: String(webPort),
     VITE_API_BASE_URL: `http://localhost:${apiPort}`,
+    CORS_ALLOWED_ORIGINS: `http://localhost:${webPort}`,
     OPENALEX_BASE_URL: `http://127.0.0.1:${mockPort}`,
     OPENALEX_API_KEY: runtimeEnv.OPENALEX_API_KEY || 'local-smoke-key',
   };

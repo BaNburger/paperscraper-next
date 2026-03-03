@@ -85,7 +85,9 @@ function createWorksUrl(
   perPage: number
 ): URL {
   const url = new URL(OPENALEX_WORKS_PATH, config.baseUrl);
-  url.searchParams.set('api_key', config.apiKey);
+  if (config.apiKey.trim().length > 0) {
+    url.searchParams.set('api_key', config.apiKey);
+  }
   url.searchParams.set(mode, value);
   url.searchParams.set('per-page', String(perPage));
   url.searchParams.set('page', String(page));
@@ -172,12 +174,6 @@ export function createOpenAlexProvider(
       maxObjects: number,
       onRetry?: (event: OpenAlexRetryLog) => void
     ): Promise<OpenAlexFetchResult> {
-      if (!config.apiKey.trim()) {
-        throw new OpenAlexPermanentError(
-          'OPENALEX_API_KEY is required for OpenAlex ingestion.'
-        );
-      }
-
       const { mode, value } = parseQuery(query);
       const pageLimit = Math.min(Math.max(maxObjects, 1), OPENALEX_PER_PAGE_LIMIT);
       const works: OpenAlexWork[] = [];

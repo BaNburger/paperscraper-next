@@ -1,9 +1,27 @@
-import type { ScoringProvider, StreamCreateInput, StreamUpdateInput } from '@paperscraper/shared/browser';
+import type {
+  FeedSavedView,
+  ScoringProvider,
+  StreamCreateInput,
+  StreamUpdateInput,
+  WorkspaceFeedPreferences,
+  WorkspaceSavedViewCreateInput,
+} from '@paperscraper/shared/browser';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { asClientErrorMessage } from '../../lib/api/errors';
 import { revokeApiKey, upsertApiKey } from '../../lib/api/api-keys';
-import { addPipelineCard, getPipelineBoard } from '../../lib/api/pipelines';
+import {
+  addPipelineCard,
+  addPipelineCardsBatch,
+  getPipelineBoard,
+  removePipelineCardsBatch,
+} from '../../lib/api/pipelines';
 import { createStream, triggerStream, updateStream } from '../../lib/api/streams';
+import {
+  createWorkspaceSavedView,
+  deleteWorkspaceSavedView,
+  updateWorkspaceSavedView,
+  upsertWorkspaceFeedPreferences,
+} from '../../lib/api/workspace';
 import { queryKeys } from '../query/keys';
 
 interface UseFeedMutationsArgs {
@@ -73,6 +91,47 @@ export function useFeedMutations({ onError }: UseFeedMutationsArgs) {
       onError(asClientErrorMessage(cause, 'Failed to add card to pipeline.')),
   });
 
+  const addBatchToPipelineMutation = useMutation({
+    mutationFn: async (input: {
+      objectIds: string[];
+      pipelineId?: string;
+      preferredStageId?: string;
+    }) => {
+      if (!input.pipelineId) {
+        throw new Error('Select a pipeline first.');
+      }
+      let stageId = input.preferredStageId;
+      if (!stageId) {
+        const board = await getPipelineBoard(input.pipelineId);
+        stageId = board.stages[0]?.id;
+      }
+      if (!stageId) {
+        throw new Error('Selected pipeline has no stages.');
+      }
+      return addPipelineCardsBatch({
+        pipelineId: input.pipelineId,
+        stageId,
+        objectIds: input.objectIds,
+      });
+    },
+    onSuccess: async (_result, input) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['objects', 'feed'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.pipelineBoard(input.pipelineId) }),
+      ]);
+    },
+    onError: (cause) =>
+      onError(asClientErrorMessage(cause, 'Failed to add selected cards to pipeline.')),
+  });
+
+  const removeBatchCardsMutation = useMutation({
+    mutationFn: (input: { pipelineId: string; cardIds: string[] }) => removePipelineCardsBatch(input),
+    onSuccess: async (_result, input) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.pipelineBoard(input.pipelineId) });
+    },
+    onError: (cause) => onError(asClientErrorMessage(cause, 'Failed to undo batch action.')),
+  });
+
   const upsertApiKeyMutation = useMutation({
     mutationFn: (input: { provider: ScoringProvider; apiKey: string }) =>
       upsertApiKey(input.provider, input.apiKey),
@@ -90,19 +149,68 @@ export function useFeedMutations({ onError }: UseFeedMutationsArgs) {
     onError: (cause) => onError(asClientErrorMessage(cause, 'Failed to revoke API key.')),
   });
 
+  const createSavedViewMutation = useMutation({
+    mutationFn: (input: WorkspaceSavedViewCreateInput) => createWorkspaceSavedView(input),
+    onSuccess: async (savedView) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workspaceSavedViews() });
+      await queryClient.setQueryData<FeedSavedView[]>(
+        queryKeys.workspaceSavedViews(),
+        (current) => [savedView, ...(current ?? [])]
+      );
+    },
+    onError: (cause) => onError(asClientErrorMessage(cause, 'Failed to create saved view.')),
+  });
+
+  const updateSavedViewMutation = useMutation({
+    mutationFn: (input: { id: string; name?: string; definition?: WorkspaceSavedViewCreateInput['definition'] }) =>
+      updateWorkspaceSavedView(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workspaceSavedViews() });
+    },
+    onError: (cause) => onError(asClientErrorMessage(cause, 'Failed to update saved view.')),
+  });
+
+  const deleteSavedViewMutation = useMutation({
+    mutationFn: (id: string) => deleteWorkspaceSavedView(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workspaceSavedViews() });
+    },
+    onError: (cause) => onError(asClientErrorMessage(cause, 'Failed to delete saved view.')),
+  });
+
+  const upsertPreferencesMutation = useMutation({
+    mutationFn: (input: WorkspaceFeedPreferences) => upsertWorkspaceFeedPreferences(input),
+    onSuccess: async (value) => {
+      await queryClient.setQueryData(queryKeys.workspaceFeedPreferences(), value);
+    },
+    onError: (cause) => onError(asClientErrorMessage(cause, 'Failed to save layout preferences.')),
+  });
+
   return {
     pending:
       createStreamMutation.isPending ||
       updateStreamMutation.isPending ||
       triggerStreamMutation.isPending ||
       addToPipelineMutation.isPending ||
+      addBatchToPipelineMutation.isPending ||
+      removeBatchCardsMutation.isPending ||
       upsertApiKeyMutation.isPending ||
-      revokeApiKeyMutation.isPending,
+      revokeApiKeyMutation.isPending ||
+      createSavedViewMutation.isPending ||
+      updateSavedViewMutation.isPending ||
+      deleteSavedViewMutation.isPending ||
+      upsertPreferencesMutation.isPending,
     createStream: createStreamMutation.mutateAsync,
     updateStream: updateStreamMutation.mutateAsync,
     triggerStream: triggerStreamMutation.mutateAsync,
     addToPipeline: addToPipelineMutation.mutateAsync,
+    addBatchToPipeline: addBatchToPipelineMutation.mutateAsync,
+    removeBatchCards: removeBatchCardsMutation.mutateAsync,
     upsertApiKey: upsertApiKeyMutation.mutateAsync,
     revokeApiKey: revokeApiKeyMutation.mutateAsync,
+    createSavedView: createSavedViewMutation.mutateAsync,
+    updateSavedView: updateSavedViewMutation.mutateAsync,
+    deleteSavedView: deleteSavedViewMutation.mutateAsync,
+    upsertPreferences: upsertPreferencesMutation.mutateAsync,
   };
 }

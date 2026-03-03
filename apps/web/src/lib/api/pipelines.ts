@@ -1,19 +1,27 @@
 import {
+  pipelineAddCardsBatchInputSchema,
+  pipelineAddCardsBatchOutputSchema,
   pipelineAddCardInputSchema,
   pipelineBoardSchema,
   pipelineCreateInputSchema,
   pipelineDeleteInputSchema,
   pipelineDeleteOutputSchema,
   pipelineMoveCardInputSchema,
+  pipelineRemoveCardsBatchInputSchema,
+  pipelineRemoveCardsBatchOutputSchema,
   pipelineRemoveCardInputSchema,
   pipelineSummarySchema,
   pipelineUpdateInputSchema,
   pipelinesListInputSchema,
+  type PipelineAddCardsBatchInput,
+  type PipelineAddCardsBatchOutput,
   type PipelineAddCardInput,
   type PipelineBoard,
   type PipelineCreateInput,
   type PipelineDeleteOutput,
   type PipelineMoveCardInput,
+  type PipelineRemoveCardsBatchInput,
+  type PipelineRemoveCardsBatchOutput,
   type PipelineRemoveCardInput,
   type PipelineSummary,
   type PipelineUpdateInput,
@@ -53,6 +61,16 @@ export async function addPipelineCard(input: PipelineAddCardInput): Promise<Pipe
   return trpcMutation('pipelines.addCard', pipelineAddCardInputSchema.parse(input), pipelineBoardSchema);
 }
 
+export async function addPipelineCardsBatch(
+  input: PipelineAddCardsBatchInput
+): Promise<PipelineAddCardsBatchOutput> {
+  return trpcMutation(
+    'pipelines.addCardsBatch',
+    pipelineAddCardsBatchInputSchema.parse(input),
+    pipelineAddCardsBatchOutputSchema
+  );
+}
+
 export async function movePipelineCard(input: PipelineMoveCardInput): Promise<PipelineBoard> {
   return trpcMutation('pipelines.moveCard', pipelineMoveCardInputSchema.parse(input), pipelineBoardSchema);
 }
@@ -62,5 +80,15 @@ export async function removePipelineCard(input: PipelineRemoveCardInput): Promis
     'pipelines.removeCard',
     pipelineRemoveCardInputSchema.parse(input),
     pipelineBoardSchema
+  );
+}
+
+export async function removePipelineCardsBatch(
+  input: PipelineRemoveCardsBatchInput
+): Promise<PipelineRemoveCardsBatchOutput> {
+  return trpcMutation(
+    'pipelines.removeCardsBatch',
+    pipelineRemoveCardsBatchInputSchema.parse(input),
+    pipelineRemoveCardsBatchOutputSchema
   );
 }

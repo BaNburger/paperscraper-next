@@ -1,10 +1,14 @@
 import type { PrismaClient } from '@paperscraper/db';
 import type {
+  PipelineAddCardsBatchInput,
+  PipelineAddCardsBatchOutput,
   PipelineAddCardInput,
   PipelineBoard,
   PipelineCreateInput,
   PipelineDeleteOutput,
   PipelineMoveCardInput,
+  PipelineRemoveCardsBatchInput,
+  PipelineRemoveCardsBatchOutput,
   PipelineRemoveCardInput,
   PipelineSummary,
   PipelineUpdateInput,
@@ -25,8 +29,12 @@ export interface PipelineProviderDeps {
   deletePipeline: (pipelineId: string) => Promise<PipelineDeleteOutput | null>;
   getBoard: (pipelineId?: string) => Promise<PipelineBoard>;
   addCard: (input: PipelineAddCardInput) => Promise<PipelineBoard>;
+  addCardsBatch: (input: PipelineAddCardsBatchInput) => Promise<PipelineAddCardsBatchOutput>;
   moveCard: (input: PipelineMoveCardInput) => Promise<PipelineBoard>;
   removeCard: (input: PipelineRemoveCardInput) => Promise<PipelineBoard>;
+  removeCardsBatch: (
+    input: PipelineRemoveCardsBatchInput
+  ) => Promise<PipelineRemoveCardsBatchOutput>;
 }
 
 export function createPipelineProvider(prisma: PrismaClient): PipelineProviderDeps {
@@ -158,6 +166,72 @@ export function createPipelineProvider(prisma: PrismaClient): PipelineProviderDe
       return board;
     },
 
+    addCardsBatch: async (input) => {
+      return prisma.$transaction(async (tx) => {
+        await assertStage(tx, input.pipelineId, input.stageId);
+        const uniqueObjectIds = Array.from(new Set(input.objectIds));
+        if (uniqueObjectIds.length === 0) {
+          return {
+            pipelineId: input.pipelineId,
+            stageId: input.stageId,
+            added: 0,
+            skippedAlreadyPresent: 0,
+            addedCardIds: [],
+          };
+        }
+
+        const existingCards = await tx.objectPipelineCard.findMany({
+          where: {
+            pipelineId: input.pipelineId,
+            objectId: { in: uniqueObjectIds },
+          },
+          select: { objectId: true },
+        });
+        const existingCardObjectIds = new Set(existingCards.map((card) => card.objectId));
+
+        const knownObjects = await tx.researchObject.findMany({
+          where: { id: { in: uniqueObjectIds } },
+          select: { id: true },
+        });
+        const knownObjectIds = new Set(knownObjects.map((item) => item.id));
+
+        const candidates = uniqueObjectIds.filter(
+          (objectId) =>
+            !existingCardObjectIds.has(objectId) && knownObjectIds.has(objectId)
+        );
+        const skippedAlreadyPresent = uniqueObjectIds.length - candidates.length;
+        const addedCardIds: string[] = [];
+        let nextPosition = await tx.objectPipelineCard.count({
+          where: {
+            pipelineId: input.pipelineId,
+            stageId: input.stageId,
+          },
+        });
+
+        for (const objectId of candidates) {
+          const created = await tx.objectPipelineCard.create({
+            data: {
+              pipelineId: input.pipelineId,
+              stageId: input.stageId,
+              objectId,
+              position: nextPosition,
+            },
+            select: { id: true },
+          });
+          addedCardIds.push(created.id);
+          nextPosition += 1;
+        }
+
+        return {
+          pipelineId: input.pipelineId,
+          stageId: input.stageId,
+          added: addedCardIds.length,
+          skippedAlreadyPresent,
+          addedCardIds,
+        };
+      });
+    },
+
     moveCard: async (input) => {
       await prisma.$transaction(async (tx) => {
         await assertStage(tx, input.pipelineId, input.toStageId);
@@ -246,6 +320,28 @@ export function createPipelineProvider(prisma: PrismaClient): PipelineProviderDe
         throw new Error('Pipeline board not found after remove card.');
       }
       return board;
+    },
+
+    removeCardsBatch: async (input) => {
+      const uniqueCardIds = Array.from(new Set(input.cardIds));
+      if (uniqueCardIds.length === 0) {
+        return {
+          pipelineId: input.pipelineId,
+          removed: 0,
+          missing: 0,
+        };
+      }
+      const removed = await prisma.objectPipelineCard.deleteMany({
+        where: {
+          pipelineId: input.pipelineId,
+          id: { in: uniqueCardIds },
+        },
+      });
+      return {
+        pipelineId: input.pipelineId,
+        removed: removed.count,
+        missing: Math.max(0, uniqueCardIds.length - removed.count),
+      };
     },
   };
 }

@@ -1,4 +1,6 @@
 import {
+  pipelineAddCardsBatchInputSchema,
+  pipelineAddCardsBatchOutputSchema,
   pipelineAddCardInputSchema,
   pipelineBoardSchema,
   pipelineCreateInputSchema,
@@ -7,14 +9,18 @@ import {
   pipelineGetBoardInputSchema,
   pipelineMoveCardInputSchema,
   pipelineRemoveCardInputSchema,
+  pipelineRemoveCardsBatchInputSchema,
+  pipelineRemoveCardsBatchOutputSchema,
   pipelinesListInputSchema,
   pipelineSummarySchema,
   pipelineUpdateInputSchema,
+  type PipelineAddCardsBatchInput,
   type PipelineAddCardInput,
   type PipelineCreateInput,
   type PipelineDeleteInput,
   type PipelineGetBoardInput,
   type PipelineMoveCardInput,
+  type PipelineRemoveCardsBatchInput,
   type PipelineRemoveCardInput,
   type PipelinesListInput,
   type PipelineUpdateInput,
@@ -28,8 +34,10 @@ export interface PipelineEngineDeps {
   deletePipeline: (pipelineId: string) => Promise<unknown | null>;
   getBoard: (pipelineId?: string) => Promise<unknown>;
   addCard: (input: PipelineAddCardInput) => Promise<unknown>;
+  addCardsBatch: (input: PipelineAddCardsBatchInput) => Promise<unknown>;
   moveCard: (input: PipelineMoveCardInput) => Promise<unknown>;
   removeCard: (input: PipelineRemoveCardInput) => Promise<unknown>;
+  removeCardsBatch: (input: PipelineRemoveCardsBatchInput) => Promise<unknown>;
 }
 
 export function createPipelineEngine(deps: PipelineEngineDeps) {
@@ -76,6 +84,12 @@ export function createPipelineEngine(deps: PipelineEngineDeps) {
       return pipelineBoardSchema.parse(board);
     },
 
+    async addCardsBatch(input: PipelineAddCardsBatchInput) {
+      const parsed = pipelineAddCardsBatchInputSchema.parse(input);
+      const result = await deps.addCardsBatch(parsed);
+      return pipelineAddCardsBatchOutputSchema.parse(result);
+    },
+
     async moveCard(input: PipelineMoveCardInput) {
       const parsed = pipelineMoveCardInputSchema.parse(input);
       const board = await deps.moveCard(parsed);
@@ -86,6 +100,12 @@ export function createPipelineEngine(deps: PipelineEngineDeps) {
       const parsed = pipelineRemoveCardInputSchema.parse(input);
       const board = await deps.removeCard(parsed);
       return pipelineBoardSchema.parse(board);
+    },
+
+    async removeCardsBatch(input: PipelineRemoveCardsBatchInput) {
+      const parsed = pipelineRemoveCardsBatchInputSchema.parse(input);
+      const result = await deps.removeCardsBatch(parsed);
+      return pipelineRemoveCardsBatchOutputSchema.parse(result);
     },
   };
 }

@@ -9,10 +9,14 @@ import {
   objectDetailInputSchema,
   objectsFeedInputSchema,
   pipelineAddCardInputSchema,
+  pipelineAddCardsBatchInputSchema,
+  pipelineAddCardsBatchOutputSchema,
   pipelineCreateInputSchema,
   pipelineDeleteInputSchema,
   pipelineGetBoardInputSchema,
   pipelineMoveCardInputSchema,
+  pipelineRemoveCardsBatchInputSchema,
+  pipelineRemoveCardsBatchOutputSchema,
   pipelineRemoveCardInputSchema,
   pipelinesListInputSchema,
   pipelineUpdateInputSchema,
@@ -24,6 +28,16 @@ import {
   streamsListInputSchema,
   streamTriggerInputSchema,
   streamUpdateInputSchema,
+  workspaceFeedPreferencesGetInputSchema,
+  workspaceFeedPreferencesUpsertInputSchema,
+  workspaceSavedViewCreateInputSchema,
+  workspaceSavedViewDeleteInputSchema,
+  workspaceSavedViewDeleteOutputSchema,
+  workspaceSavedViewUpdateInputSchema,
+  workspaceSavedViewsListInputSchema,
+  objectNoteGetInputSchema,
+  objectNoteUpsertInputSchema,
+  objectNoteUpsertResultSchema,
 } from '@paperscraper/shared';
 import type { TrpcContext } from './context';
 
@@ -119,12 +133,48 @@ export const appRouter = t.router({
     addCard: t.procedure
       .input(pipelineAddCardInputSchema)
       .mutation(async ({ ctx, input }) => ctx.pipelineEngine.addCard(input)),
+    addCardsBatch: t.procedure
+      .input(pipelineAddCardsBatchInputSchema)
+      .output(pipelineAddCardsBatchOutputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.addCardsBatch(input)),
     moveCard: t.procedure
       .input(pipelineMoveCardInputSchema)
       .mutation(async ({ ctx, input }) => ctx.pipelineEngine.moveCard(input)),
     removeCard: t.procedure
       .input(pipelineRemoveCardInputSchema)
       .mutation(async ({ ctx, input }) => ctx.pipelineEngine.removeCard(input)),
+    removeCardsBatch: t.procedure
+      .input(pipelineRemoveCardsBatchInputSchema)
+      .output(pipelineRemoveCardsBatchOutputSchema)
+      .mutation(async ({ ctx, input }) => ctx.pipelineEngine.removeCardsBatch(input)),
+  }),
+  workspace: t.router({
+    listSavedViews: t.procedure
+      .input(workspaceSavedViewsListInputSchema.optional())
+      .query(async ({ ctx, input }) => ctx.workspaceEngine.listSavedViews(input ?? {})),
+    createSavedView: t.procedure
+      .input(workspaceSavedViewCreateInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.workspaceEngine.createSavedView(input)),
+    updateSavedView: t.procedure
+      .input(workspaceSavedViewUpdateInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.workspaceEngine.updateSavedView(input)),
+    deleteSavedView: t.procedure
+      .input(workspaceSavedViewDeleteInputSchema)
+      .output(workspaceSavedViewDeleteOutputSchema)
+      .mutation(async ({ ctx, input }) => ctx.workspaceEngine.deleteSavedView(input)),
+    getFeedPreferences: t.procedure
+      .input(workspaceFeedPreferencesGetInputSchema.optional())
+      .query(async ({ ctx, input }) => ctx.workspaceEngine.getFeedPreferences(input ?? {})),
+    upsertFeedPreferences: t.procedure
+      .input(workspaceFeedPreferencesUpsertInputSchema)
+      .mutation(async ({ ctx, input }) => ctx.workspaceEngine.upsertFeedPreferences(input)),
+    getObjectNote: t.procedure
+      .input(objectNoteGetInputSchema)
+      .query(async ({ ctx, input }) => ctx.workspaceEngine.getObjectNote(input)),
+    upsertObjectNote: t.procedure
+      .input(objectNoteUpsertInputSchema)
+      .output(objectNoteUpsertResultSchema)
+      .mutation(async ({ ctx, input }) => ctx.workspaceEngine.upsertObjectNote(input)),
   }),
 });
 

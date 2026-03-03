@@ -1,9 +1,7 @@
 import type {
+  FeedColumn,
   FeedSort,
   PipelineStage,
-  PipelineSummary,
-  StreamDto,
-  StreamRunDto,
 } from '@paperscraper/shared/browser';
 
 export type FeedFilters = {
@@ -16,13 +14,19 @@ export type FeedFilters = {
 
 export type FeedPaneTab = 'streams' | 'apiKeys';
 
-export type StreamDraft = Pick<StreamDto, 'name' | 'query' | 'maxObjects' | 'isActive'>;
+export type StreamDraft = {
+  name: string;
+  query: string;
+  maxObjectsInput: string;
+  isActive: boolean;
+};
 
 export type StageOption = Pick<PipelineStage, 'id' | 'name'>;
 
-export interface FeedViewModel {
-  streams: StreamDto[];
-  streamRuns: StreamRunDto[];
-  pipelines: PipelineSummary[];
-  stageOptions: StageOption[];
-}
+export const DEFAULT_VISIBLE_COLUMNS: FeedColumn[] = [
+  'title',
+  'topScore',
+  'publishedAt',
+  'entities',
+  'stage',
+];
